@@ -1,0 +1,15 @@
+freepark:
+  wxAppId: "example"
+  endpoint: "https://example.com"
+  headers:
+    userAgent: "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36 MicroMessenger/7.0.9.501 NetType/WIFI MiniProgramEnv/Windows WindowsWechat"
+    referer: "https://example.com"
+  uris:
+    parkDetail: "/app-park/parkingFee/getDetailByCarNumber?wxAppId={wxAppId}&openid={openid}&carNumber={carNumber}&userId={userId}&memType={memType}"
+    pay: "/app-park/payParkingFee"
+  timeout:
+    connect: 1000
+    read: 5000
+
+
+
