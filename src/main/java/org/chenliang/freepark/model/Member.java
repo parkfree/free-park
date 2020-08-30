@@ -5,6 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -31,6 +32,6 @@ public class Member {
   @UpdateTimestamp
   private LocalDateTime updatedAt;
 
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   private Tenant tenant;
 }
