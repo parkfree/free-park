@@ -1,6 +1,8 @@
 package org.chenliang.freepark.model;
 
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -24,7 +26,9 @@ public class Member {
   private String memType;
   private String mobile;
   private LocalDate lastPaidAt;
+  @CreationTimestamp
   private LocalDateTime createdAt;
+  @UpdateTimestamp
   private LocalDateTime updatedAt;
 
   @ManyToOne
