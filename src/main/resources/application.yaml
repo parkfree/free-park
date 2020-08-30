@@ -11,5 +11,8 @@ freepark:
     connect: 1000
     read: 5000
 
-
-
+spring:
+  datasource:
+    url: "jdbc:mysql://localhost:43306/freepark"
+    username: "root"
+    password: "any"
