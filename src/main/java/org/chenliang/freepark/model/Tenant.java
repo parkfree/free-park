@@ -9,9 +9,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -19,18 +17,15 @@ import java.util.List;
 @Table(name = "tenants")
 public class Tenant {
   @Id
-  @GeneratedValue(strategy= GenerationType.AUTO)
+  @GeneratedValue(strategy = GenerationType.AUTO)
   private Integer id;
   private String carNumber;
+
   private String email;
   private String owner;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
 
   @OneToMany(mappedBy = "tenant", fetch = FetchType.EAGER)
   private List<Member> members;
-
-  @Temporal(TemporalType.TIMESTAMP)
-  private Date createdAt;
-
-  @Temporal(TemporalType.TIMESTAMP)
-  private Date updatedAt;
 }
