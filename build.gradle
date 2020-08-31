@@ -29,6 +29,10 @@ dependencies {
     }
 }
 
+bootJar {
+    launchScript()
+}
+
 test {
     useJUnitPlatform()
 }
