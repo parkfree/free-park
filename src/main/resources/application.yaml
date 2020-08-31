@@ -19,8 +19,7 @@ spring:
 
 logging:
   file:
-    path: "/var/log/freepark"
-    name: "application.log"
+    name: "/var/log/freepark/application.log"
     max-history: 5
 
 check-cron: "0 30 8 * * MON-FRI"
