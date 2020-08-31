@@ -8,10 +8,13 @@ import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+
+import static org.chenliang.freepark.service.TaskManger.PAY_PERIOD;
 
 @Service
 @Log4j2
@@ -19,7 +22,6 @@ public class CheckService {
   // 车刚入停车场的前两小时单独计费
   private static final int FIXED_PARK_TIME_MIN = 120;
   private static final int SAFE_PAY_THRESHOLD_MIN = 2;
-  private static final int PAY_INTERVAL_MIN = 60;
   private static final int MAX_CHECK_COUNT = 9;
 
   @Autowired
@@ -42,6 +44,7 @@ public class CheckService {
 
     log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), taskManger.getCheckCount(tenant));
     ParkDetail parkDetail = getParkDetail(tenant, member);
+    taskManger.incCheckCount(tenant);
 
     if (parkDetail == null) {
       if (taskManger.getCheckCount(tenant) > MAX_CHECK_COUNT) {
@@ -54,13 +57,12 @@ public class CheckService {
     taskManger.cancelCheckTask(tenant);
 
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
-    Integer initialDelay = getInitDelay(parkTime);
-    taskManger.createPayTask(tenant, initialDelay);
+    taskManger.createPayTask(tenant, getInitDelay(parkTime));
 
     LocalDateTime parkAtTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(parkDetail.getParkingFee().getPassTime()),
                                                        ZoneId.systemDefault());
     log.info("Car {} is found, it's parked at: {}, already parked: {} min, scheduled to pay after: {} min",
-             tenant.getCarNumber(), parkAtTime, parkTime, initialDelay);
+             tenant.getCarNumber(), parkAtTime, parkTime, getInitDelay(parkTime));
   }
 
   private ParkDetail getParkDetail(Tenant tenant, Member member) {
@@ -84,16 +86,18 @@ public class CheckService {
     }
   }
 
-  private Integer getInitDelay(Integer parkTime) {
+  private Duration getInitDelay(Integer parkTime) {
+    int payPeriod = (int) PAY_PERIOD.toMinutes();
+
     int initialDelay;
     if (parkTime < FIXED_PARK_TIME_MIN) {
-      initialDelay = FIXED_PARK_TIME_MIN + PAY_INTERVAL_MIN - parkTime;
+      initialDelay = FIXED_PARK_TIME_MIN + payPeriod - parkTime;
     } else {
-      initialDelay = PAY_INTERVAL_MIN - (parkTime % PAY_INTERVAL_MIN);
+      initialDelay = payPeriod - (parkTime % payPeriod);
     }
     if (initialDelay > SAFE_PAY_THRESHOLD_MIN) {
       initialDelay = initialDelay - SAFE_PAY_THRESHOLD_MIN;
     }
-    return initialDelay;
+    return Duration.ofMinutes(initialDelay);
   }
 }
