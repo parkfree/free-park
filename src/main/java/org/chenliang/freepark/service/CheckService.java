@@ -58,12 +58,13 @@ public class CheckService {
     taskManger.cancelCheckTask(tenant);
 
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
-    taskManger.schedulePayTask(tenant, getInitDelay(parkTime));
+    Duration initDelay = getInitDelay(parkTime);
+    taskManger.schedulePayTask(tenant, initDelay);
 
     LocalDateTime parkAtTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(parkDetail.getParkingFee().getPassTime()),
                                                        ZoneId.systemDefault());
     log.info("Car {} is found, it's parked at: {}, already parked: {} min, scheduled to pay after: {} min",
-             tenant.getCarNumber(), parkAtTime, parkTime, getInitDelay(parkTime));
+             tenant.getCarNumber(), parkAtTime, parkTime, initDelay.toMinutes());
   }
 
   private ParkDetail getParkDetail(Tenant tenant, Member member) {

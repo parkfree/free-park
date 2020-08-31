@@ -31,12 +31,12 @@ public class TaskManger {
   private PayService payService;
 
   public void scheduleCheckTask(Tenant tenant) {
+    checkCounters.put(tenant, 0);
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
       checkService.check(tenant);
     }, CHECK_PERIOD);
 
     checkTasks.put(tenant, future);
-    checkCounters.put(tenant, 0);
   }
 
   public void incCheckCount(Tenant tenant) {
@@ -52,9 +52,9 @@ public class TaskManger {
     checkTasks.remove(tenant);
     checkCounters.remove(tenant);
     if (canceled) {
-      log.info("Check task for tenant {} canceled successfully", tenant.getOwner());
+      log.info("Check task for tenant {} canceled successfully", tenant.getCarNumber());
     } else {
-      log.error("Check task for tenant {} canceled failed", tenant.getOwner());
+      log.error("Check task for tenant {} canceled failed", tenant.getCarNumber());
     }
   }
 
@@ -69,9 +69,9 @@ public class TaskManger {
     boolean canceled = payTasks.get(tenant).cancel(false);
     payTasks.remove(tenant);
     if (canceled) {
-      log.info("Pay task for tenant {} canceled successfully", tenant.getOwner());
+      log.info("Pay task for tenant {} canceled successfully", tenant.getCarNumber());
     } else {
-      log.error("Pay task for tenant {} canceled failed", tenant.getOwner());
+      log.error("Pay task for tenant {} canceled failed", tenant.getCarNumber());
     }
   }
 }

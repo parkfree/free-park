@@ -25,6 +25,7 @@ public class PayService {
 
   public void pay(Tenant tenant) {
     LocalDate today = LocalDate.now();
+    log.info("Start to pay car {}", tenant.getCarNumber());
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task.", tenant.getCarNumber());
@@ -38,11 +39,6 @@ public class PayService {
     }
 
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
-    if (parkingFee.getFeeNumber() != 0) {
-      // TODO: notify owner
-      log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
-      return;
-    }
 
     if (parkingFee.getReceivable() == 0) {
       log.info("Car {} is already paid", tenant.getCarNumber());
@@ -54,6 +50,12 @@ public class PayService {
       member.setLastPaidAt(today);
       memberRepository.save(member);
       pay(tenant);
+      return;
+    }
+
+    if (parkingFee.getFeeNumber() != 0) {
+      // TODO: notify owner
+      log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
       return;
     }
 
