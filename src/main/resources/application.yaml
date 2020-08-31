@@ -16,3 +16,5 @@ spring:
     url: "jdbc:mysql://localhost:43306/freepark"
     username: "root"
     password: "any"
+
+check-cron: "0 30 8 * * MON-FRI"
