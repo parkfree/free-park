@@ -21,7 +21,7 @@ import static org.chenliang.freepark.service.TaskManger.PAY_PERIOD;
 public class CheckService {
   // 车刚入停车场的前两小时单独计费
   private static final int FIXED_PARK_TIME_MIN = 120;
-  private static final int SAFE_PAY_THRESHOLD_MIN = 2;
+  private static final int SAFE_PAY_THRESHOLD_MIN = 3;
   private static final int MAX_CHECK_COUNT = 9;
 
   @Autowired
