@@ -30,7 +30,7 @@ public class TaskManger {
   @Autowired
   private PayService payService;
 
-  public void createCheckTask(Tenant tenant) {
+  public void scheduleCheckTask(Tenant tenant) {
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
       checkService.check(tenant);
     }, CHECK_PERIOD);
@@ -58,7 +58,7 @@ public class TaskManger {
     }
   }
 
-  public void createPayTask(Tenant tenant, Duration initialDelay) {
+  public void schedulePayTask(Tenant tenant, Duration initialDelay) {
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
       payService.pay(tenant);
     }, Instant.now().plus(initialDelay), PAY_PERIOD);

@@ -23,7 +23,7 @@ public class CheckAtStart implements CommandLineRunner {
   public void run(String... args) throws Exception {
     List<Tenant> tenants = tenantRepository.findAll();
     for (Tenant tenant : tenants) {
-      taskManger.createCheckTask(tenant);
+      taskManger.scheduleCheckTask(tenant);
     }
   }
 }

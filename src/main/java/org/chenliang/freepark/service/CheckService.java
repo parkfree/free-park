@@ -57,7 +57,7 @@ public class CheckService {
     taskManger.cancelCheckTask(tenant);
 
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
-    taskManger.createPayTask(tenant, getInitDelay(parkTime));
+    taskManger.schedulePayTask(tenant, getInitDelay(parkTime));
 
     LocalDateTime parkAtTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(parkDetail.getParkingFee().getPassTime()),
                                                        ZoneId.systemDefault());
