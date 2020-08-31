@@ -34,6 +34,8 @@ public class CheckService {
   private TaskManger taskManger;
 
   public void check(Tenant tenant) {
+    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), taskManger.getCheckCount(tenant));
+
     LocalDate today = LocalDate.now();
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
     if (member == null) {
@@ -42,7 +44,6 @@ public class CheckService {
       return;
     }
 
-    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), taskManger.getCheckCount(tenant));
     ParkDetail parkDetail = getParkDetail(tenant, member);
     taskManger.incCheckCount(tenant);
 
