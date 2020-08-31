@@ -17,4 +17,10 @@ spring:
     username: "root"
     password: "any"
 
+logging:
+  file:
+    path: "/var/log/freepark"
+    name: "application.log"
+    max-history: 5
+
 check-cron: "0 30 8 * * MON-FRI"
