@@ -28,7 +28,7 @@ public class CheckService {
   private MemberRepository memberRepository;
 
   @Autowired
-  private FreeParkService freeParkService;
+  private RtmapService rtmapService;
 
   @Autowired
   private TaskManger taskManger;
@@ -70,7 +70,7 @@ public class CheckService {
   private ParkDetail getParkDetail(Tenant tenant, Member member) {
     ParkDetail parkDetail;
     try {
-      parkDetail = freeParkService.getParkDetail(member, tenant.getCarNumber());
+      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
     } catch (Exception e) {
       log.error("Call park detail API error", e);
       return null;

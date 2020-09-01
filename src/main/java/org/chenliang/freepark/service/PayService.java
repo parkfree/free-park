@@ -18,7 +18,7 @@ public class PayService {
   private MemberRepository memberRepository;
 
   @Autowired
-  private FreeParkService freeParkService;
+  private RtmapService rtmapService;
 
   @Autowired
   private TaskManger taskManger;
@@ -61,7 +61,7 @@ public class PayService {
 
     Status status;
     try {
-      status = freeParkService.pay(member, parkDetail);
+      status = rtmapService.pay(member, parkDetail);
     } catch (Exception e) {
       log.error("Call pay API error", e);
       return;
@@ -84,7 +84,7 @@ public class PayService {
   private ParkDetail getParkDetail(Tenant tenant, Member member) {
     ParkDetail parkDetail;
     try {
-      parkDetail = freeParkService.getParkDetail(member, tenant.getCarNumber());
+      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
     } catch (Exception e) {
       log.error("Call park detail API error", e);
       return null;

@@ -15,11 +15,11 @@ import org.springframework.web.client.RestTemplate;
 import java.util.UUID;
 
 @Service
-public class FreeParkService {
+public class RtmapService {
   private final RestTemplate client;
   private final FreeParkConfig config;
 
-  public FreeParkService(RestTemplate client, FreeParkConfig config) {
+  public RtmapService(RestTemplate client, FreeParkConfig config) {
     this.client = client;
     this.config = config;
   }
