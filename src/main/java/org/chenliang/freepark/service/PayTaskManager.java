@@ -19,7 +19,6 @@ import java.util.concurrent.ScheduledFuture;
 @Log4j2
 public class PayTaskManager {
   private static final Duration PAY_PERIOD = Duration.ofMinutes(60);
-  private static final int FIXED_PARK_TIME_MIN = 120;
   private static final int SAFE_PAY_THRESHOLD_MIN = 3;
 
   private final Map<Integer, ScheduledFuture<?>> payTasks = new ConcurrentHashMap<>();
@@ -61,7 +60,7 @@ public class PayTaskManager {
     PayStatus payStatus = paymentService.pay(tenant);
     if (payStatus == PayStatus.CAR_NOT_FOUND || payStatus == PayStatus.NO_AVAILABLE_MEMBER) {
       cancelPayTask(tenant);
-    } else if( payStatus == PayStatus.SUCCESS) {
+    } else if (payStatus == PayStatus.SUCCESS) {
       if (memberRepository.findFirstByLastPaidAtBeforeAndTenant(LocalDate.now(), tenant) == null) {
         log.warn("All members for car {} are used, cancel the pay schedule task", tenant.getCarNumber());
         cancelPayTask(tenant);
@@ -72,12 +71,7 @@ public class PayTaskManager {
   private Duration calculateInitPayDelay(Integer parkTime) {
     int payPeriod = (int) PAY_PERIOD.toMinutes();
 
-    int initialDelay;
-    if (parkTime < FIXED_PARK_TIME_MIN) {
-      initialDelay = FIXED_PARK_TIME_MIN + payPeriod - parkTime;
-    } else {
-      initialDelay = payPeriod - (parkTime % payPeriod);
-    }
+    int initialDelay = payPeriod - (parkTime % payPeriod);
     if (initialDelay > SAFE_PAY_THRESHOLD_MIN) {
       initialDelay = initialDelay - SAFE_PAY_THRESHOLD_MIN;
     }
