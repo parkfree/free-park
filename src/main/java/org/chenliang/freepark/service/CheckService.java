@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
-import static org.chenliang.freepark.service.TaskManger.PAY_PERIOD;
+import static org.chenliang.freepark.service.PayService.PAY_PERIOD;
 
 @Service
 @Log4j2
@@ -39,7 +39,7 @@ public class CheckService {
   private RtmapService rtmapService;
 
   @Autowired
-  private TaskManger taskManger;
+  private PayService payService;
 
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
@@ -86,7 +86,7 @@ public class CheckService {
   private void schedulePayTask(Tenant tenant, ParkDetail parkDetail) {
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
     Duration initDelay = getInitPayDelay(parkTime);
-    taskManger.schedulePayTask(tenant, initDelay);
+    payService.schedulePayTask(tenant, initDelay);
 
     Long parkTimestamp = parkDetail.getParkingFee().getPassTime();
     LocalDateTime parkAtTime = Instant.ofEpochMilli(parkTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();

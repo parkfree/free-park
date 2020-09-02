@@ -7,13 +7,22 @@ import org.chenliang.freepark.model.Status;
 import org.chenliang.freepark.model.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 @Log4j2
 public class PayService {
+  public static final Duration PAY_PERIOD = Duration.ofMinutes(60);
+  private final Map<Integer, ScheduledFuture<?>> payTasks = new ConcurrentHashMap<>();
+
   @Autowired
   private MemberRepository memberRepository;
 
@@ -21,7 +30,24 @@ public class PayService {
   private RtmapService rtmapService;
 
   @Autowired
-  private TaskManger taskManger;
+  private ThreadPoolTaskScheduler taskScheduler;
+
+  public void schedulePayTask(Tenant tenant, Duration initialDelay) {
+    ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
+      pay(tenant);
+    }, Instant.now().plus(initialDelay), PAY_PERIOD);
+    payTasks.put(tenant.getId(), future);
+  }
+
+  public void cancelPayTask(Tenant tenant) {
+    boolean canceled = payTasks.get(tenant.getId()).cancel(false);
+    payTasks.remove(tenant.getId());
+    if (canceled) {
+      log.info("Pay task for car {} is canceled", tenant.getCarNumber());
+    } else {
+      log.error("Cancel pay task for car {} failed", tenant.getCarNumber());
+    }
+  }
 
   public void pay(Tenant tenant) {
     LocalDate today = LocalDate.now();
@@ -29,7 +55,7 @@ public class PayService {
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task.", tenant.getCarNumber());
-      taskManger.cancelPayTask(tenant);
+      cancelPayTask(tenant);
       return;
     }
 
@@ -77,7 +103,7 @@ public class PayService {
 
     if (memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant) == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task.", tenant.getCarNumber());
-      taskManger.cancelPayTask(tenant);
+      cancelPayTask(tenant);
     }
   }
 
@@ -94,7 +120,7 @@ public class PayService {
       return parkDetail;
     } else if (parkDetail.getCode() == 400) {
       log.info("The car is exit: {}", parkDetail.getMsg());
-      taskManger.cancelPayTask(tenant);
+      cancelPayTask(tenant);
       return null;
     } else {
       log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(),
