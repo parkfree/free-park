@@ -18,17 +18,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
-import static org.chenliang.freepark.service.PayService.PAY_PERIOD;
-
 @Service
 @Log4j2
 public class CheckService {
-  // 车刚入停车场的前两小时单独计费
-  private static final int FIXED_PARK_TIME_MIN = 120;
-  private static final int SAFE_PAY_THRESHOLD_MIN = 3;
   private static final int MAX_CHECK_COUNT = 9;
-
   private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
+
   private final Map<Integer, ScheduledFuture<?>> checkTasks = new ConcurrentHashMap<>();
   private final Map<Integer, Integer> checkCounters = new ConcurrentHashMap<>();
 
@@ -85,14 +80,12 @@ public class CheckService {
 
   private void schedulePayTask(Tenant tenant, ParkDetail parkDetail) {
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
-    Duration initDelay = getInitPayDelay(parkTime);
-    payService.schedulePayTask(tenant, initDelay);
+    payService.schedulePayTask(tenant, parkTime);
 
-    Long parkTimestamp = parkDetail.getParkingFee().getPassTime();
-    LocalDateTime parkAtTime = Instant.ofEpochMilli(parkTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
+    Long parkAtTimestamp = parkDetail.getParkingFee().getPassTime();
+    LocalDateTime parkAtTime = Instant.ofEpochMilli(parkAtTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
 
-    log.info("Car {} is found, it's parked at: {}, already parked: {} min, scheduled to pay after: {} min",
-             tenant.getCarNumber(), parkAtTime, parkTime, initDelay.toMinutes());
+    log.info("Car {} is found, parked at: {}, already parked: {} min", tenant.getCarNumber(), parkAtTime, parkTime);
   }
 
   public void incCheckCount(Tenant tenant) {
@@ -129,20 +122,5 @@ public class CheckService {
                tenant.getCarNumber(), parkDetail.getCode(), parkDetail.getMsg());
       return null;
     }
-  }
-
-  private Duration getInitPayDelay(Integer parkTime) {
-    int payPeriod = (int) PAY_PERIOD.toMinutes();
-
-    int initialDelay;
-    if (parkTime < FIXED_PARK_TIME_MIN) {
-      initialDelay = FIXED_PARK_TIME_MIN + payPeriod - parkTime;
-    } else {
-      initialDelay = payPeriod - (parkTime % payPeriod);
-    }
-    if (initialDelay > SAFE_PAY_THRESHOLD_MIN) {
-      initialDelay = initialDelay - SAFE_PAY_THRESHOLD_MIN;
-    }
-    return Duration.ofMinutes(initialDelay);
   }
 }

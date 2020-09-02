@@ -20,7 +20,10 @@ import java.util.concurrent.ScheduledFuture;
 @Service
 @Log4j2
 public class PayService {
-  public static final Duration PAY_PERIOD = Duration.ofMinutes(60);
+  private static final Duration PAY_PERIOD = Duration.ofMinutes(60);
+  private static final int FIXED_PARK_TIME_MIN = 120;
+  private static final int SAFE_PAY_THRESHOLD_MIN = 3;
+
   private final Map<Integer, ScheduledFuture<?>> payTasks = new ConcurrentHashMap<>();
 
   @Autowired
@@ -32,10 +35,12 @@ public class PayService {
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
 
-  public void schedulePayTask(Tenant tenant, Duration initialDelay) {
+  public void schedulePayTask(Tenant tenant, Integer parkTime) {
+    Duration initDelay = calculateInitPayDelay(parkTime);
+    log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
       pay(tenant);
-    }, Instant.now().plus(initialDelay), PAY_PERIOD);
+    }, Instant.now().plus(initDelay), PAY_PERIOD);
     payTasks.put(tenant.getId(), future);
   }
 
@@ -127,5 +132,20 @@ public class PayService {
                parkDetail.getMsg());
       return null;
     }
+  }
+
+  private Duration calculateInitPayDelay(Integer parkTime) {
+    int payPeriod = (int) PAY_PERIOD.toMinutes();
+
+    int initialDelay;
+    if (parkTime < FIXED_PARK_TIME_MIN) {
+      initialDelay = FIXED_PARK_TIME_MIN + payPeriod - parkTime;
+    } else {
+      initialDelay = payPeriod - (parkTime % payPeriod);
+    }
+    if (initialDelay > SAFE_PAY_THRESHOLD_MIN) {
+      initialDelay = initialDelay - SAFE_PAY_THRESHOLD_MIN;
+    }
+    return Duration.ofMinutes(initialDelay);
   }
 }
