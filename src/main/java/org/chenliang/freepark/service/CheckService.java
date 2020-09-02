@@ -29,8 +29,8 @@ public class CheckService {
   private static final int MAX_CHECK_COUNT = 9;
 
   private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
-  private final Map<Tenant, ScheduledFuture<?>> checkTasks = new ConcurrentHashMap<>();
-  private final Map<Tenant, Integer> checkCounters = new ConcurrentHashMap<>();
+  private final Map<Integer, ScheduledFuture<?>> checkTasks = new ConcurrentHashMap<>();
+  private final Map<Integer, Integer> checkCounters = new ConcurrentHashMap<>();
 
   @Autowired
   private MemberRepository memberRepository;
@@ -45,16 +45,20 @@ public class CheckService {
   private ThreadPoolTaskScheduler taskScheduler;
 
   public void scheduleCheckTask(Tenant tenant) {
-    checkCounters.put(tenant, 0);
+    if (checkTasks.get(tenant.getId()) != null) {
+      log.info("The check task for car {} is already scheduled", tenant.getCarNumber());
+      return;
+    }
+
+    checkCounters.put(tenant.getId(), 0);
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
       check(tenant);
     }, CHECK_PERIOD);
-
-    checkTasks.put(tenant, future);
+    checkTasks.put(tenant.getId(), future);
   }
 
   public void check(Tenant tenant) {
-    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkCounters.get(tenant));
+    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkCounters.get(tenant.getId()));
 
     LocalDate today = LocalDate.now();
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
@@ -68,7 +72,7 @@ public class CheckService {
     incCheckCount(tenant);
 
     if (parkDetail == null) {
-      if (checkCounters.get(tenant) > MAX_CHECK_COUNT) {
+      if (checkCounters.get(tenant.getId()) > MAX_CHECK_COUNT) {
         log.info("Car {} reach the check count limitation: {}", tenant.getCarNumber(), MAX_CHECK_COUNT);
         cancelCheckTask(tenant);
       }
@@ -88,13 +92,13 @@ public class CheckService {
   }
 
   public void incCheckCount(Tenant tenant) {
-    checkCounters.put(tenant, checkCounters.get(tenant) + 1);
+    checkCounters.put(tenant.getId(), checkCounters.get(tenant.getId()) + 1);
   }
 
   public void cancelCheckTask(Tenant tenant) {
-    boolean canceled = checkTasks.get(tenant).cancel(false);
-    checkTasks.remove(tenant);
-    checkCounters.remove(tenant);
+    boolean canceled = checkTasks.get(tenant.getId()).cancel(false);
+    checkTasks.remove(tenant.getId());
+    checkCounters.remove(tenant.getId());
     if (canceled) {
       log.info("Check task for car {} is canceled", tenant.getCarNumber());
     } else {
@@ -114,11 +118,11 @@ public class CheckService {
     if (parkDetail.getCode() == 200) {
       return parkDetail;
     } else if (parkDetail.getCode() == 400) {
-      log.info("The car is not parked: {}", parkDetail.getMsg());
+      log.info("Car {} is not parked: {}", tenant.getCarNumber(), parkDetail.getMsg());
       return null;
     } else {
-      log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(),
-               parkDetail.getMsg());
+      log.warn("Call park detail API for car {} return error code: {}, message: {}",
+               tenant.getCarNumber(), parkDetail.getCode(), parkDetail.getMsg());
       return null;
     }
   }
