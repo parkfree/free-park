@@ -80,12 +80,11 @@ public class CheckTaskManager {
 
   private void schedulePayTask(Tenant tenant, ParkDetail parkDetail) {
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
-    payTaskManager.schedulePayTask(tenant, parkTime);
-
     Long parkAtTimestamp = parkDetail.getParkingFee().getPassTime();
     LocalDateTime parkAtTime = Instant.ofEpochMilli(parkAtTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
-
     log.info("Car {} is found, parked at: {}, already parked: {} min", tenant.getCarNumber(), parkAtTime, parkTime);
+
+    payTaskManager.schedulePayTask(tenant, parkTime);
   }
 
   public void incCheckCount(Tenant tenant) {
