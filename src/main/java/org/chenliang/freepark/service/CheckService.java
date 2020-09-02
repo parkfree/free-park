@@ -57,8 +57,9 @@ public class CheckService {
     checkTasks.put(tenant.getId(), future);
   }
 
-  public void check(Tenant tenant) {
+  private void check(Tenant tenant) {
     log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkCounters.get(tenant.getId()));
+    incCheckCount(tenant);
 
     LocalDate today = LocalDate.now();
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
@@ -69,7 +70,6 @@ public class CheckService {
     }
 
     ParkDetail parkDetail = getParkDetail(tenant, member);
-    incCheckCount(tenant);
 
     if (parkDetail == null) {
       if (checkCounters.get(tenant.getId()) > MAX_CHECK_COUNT) {
@@ -79,14 +79,18 @@ public class CheckService {
       return;
     }
 
+    schedulePayTask(tenant, parkDetail);
     cancelCheckTask(tenant);
+  }
 
+  private void schedulePayTask(Tenant tenant, ParkDetail parkDetail) {
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
     Duration initDelay = getInitPayDelay(parkTime);
     taskManger.schedulePayTask(tenant, initDelay);
 
-    LocalDateTime parkAtTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(parkDetail.getParkingFee().getPassTime()),
-                                                       ZoneId.systemDefault());
+    Long parkTimestamp = parkDetail.getParkingFee().getPassTime();
+    LocalDateTime parkAtTime = Instant.ofEpochMilli(parkTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
+
     log.info("Car {} is found, it's parked at: {}, already parked: {} min, scheduled to pay after: {} min",
              tenant.getCarNumber(), parkAtTime, parkTime, initDelay.toMinutes());
   }
