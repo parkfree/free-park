@@ -34,6 +34,11 @@ public class PayTaskManager {
   private ThreadPoolTaskScheduler taskScheduler;
 
   public void schedulePayTask(Tenant tenant, Integer parkTime) {
+    if (payTasks.get(tenant.getId()) != null) {
+      log.info("The pay task for car {} is already scheduled", tenant.getCarNumber());
+      return;
+    }
+
     Duration initDelay = calculateInitPayDelay(parkTime);
     log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
