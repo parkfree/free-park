@@ -20,7 +20,7 @@ import java.util.concurrent.ScheduledFuture;
 
 @Service
 @Log4j2
-public class CheckService {
+public class CheckTaskManager {
   private static final int MAX_CHECK_COUNT = 9;
   private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
 
@@ -34,7 +34,7 @@ public class CheckService {
   private RtmapService rtmapService;
 
   @Autowired
-  private PayService payService;
+  private PayTaskManager payTaskManager;
 
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
@@ -80,7 +80,7 @@ public class CheckService {
 
   private void schedulePayTask(Tenant tenant, ParkDetail parkDetail) {
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
-    payService.schedulePayTask(tenant, parkTime);
+    payTaskManager.schedulePayTask(tenant, parkTime);
 
     Long parkAtTimestamp = parkDetail.getParkingFee().getPassTime();
     LocalDateTime parkAtTime = Instant.ofEpochMilli(parkAtTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();

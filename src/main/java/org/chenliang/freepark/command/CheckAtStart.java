@@ -3,7 +3,7 @@ package org.chenliang.freepark.command;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.Tenant;
 import org.chenliang.freepark.repository.TenantRepository;
-import org.chenliang.freepark.service.CheckService;
+import org.chenliang.freepark.service.CheckTaskManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -20,7 +20,7 @@ public class CheckAtStart implements CommandLineRunner {
   private TenantRepository tenantRepository;
 
   @Autowired
-  private CheckService checkService;
+  private CheckTaskManager checkTaskManager;
 
   @Override
   public void run(String... args) throws Exception {
@@ -31,7 +31,7 @@ public class CheckAtStart implements CommandLineRunner {
   public void scheduledCheck() {
     List<Tenant> tenants = tenantRepository.findAll();
     for (Tenant tenant : tenants) {
-      checkService.scheduleCheckTask(tenant);
+      checkTaskManager.scheduleCheckTask(tenant);
     }
   }
 }
