@@ -6,6 +6,7 @@ import org.chenliang.freepark.model.ParkDetail;
 import org.chenliang.freepark.model.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -13,6 +14,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 import static org.chenliang.freepark.service.TaskManger.PAY_PERIOD;
 
@@ -24,6 +28,10 @@ public class CheckService {
   private static final int SAFE_PAY_THRESHOLD_MIN = 3;
   private static final int MAX_CHECK_COUNT = 9;
 
+  private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
+  private final Map<Tenant, ScheduledFuture<?>> checkTasks = new ConcurrentHashMap<>();
+  private final Map<Tenant, Integer> checkCounters = new ConcurrentHashMap<>();
+
   @Autowired
   private MemberRepository memberRepository;
 
@@ -33,38 +41,65 @@ public class CheckService {
   @Autowired
   private TaskManger taskManger;
 
+  @Autowired
+  private ThreadPoolTaskScheduler taskScheduler;
+
+  public void scheduleCheckTask(Tenant tenant) {
+    checkCounters.put(tenant, 0);
+    ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
+      check(tenant);
+    }, CHECK_PERIOD);
+
+    checkTasks.put(tenant, future);
+  }
+
   public void check(Tenant tenant) {
-    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), taskManger.getCheckCount(tenant));
+    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkCounters.get(tenant));
 
     LocalDate today = LocalDate.now();
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the check schedule task.", tenant.getCarNumber());
-      taskManger.cancelCheckTask(tenant);
+      cancelCheckTask(tenant);
       return;
     }
 
     ParkDetail parkDetail = getParkDetail(tenant, member);
-    taskManger.incCheckCount(tenant);
+    incCheckCount(tenant);
 
     if (parkDetail == null) {
-      if (taskManger.getCheckCount(tenant) > MAX_CHECK_COUNT) {
+      if (checkCounters.get(tenant) > MAX_CHECK_COUNT) {
         log.info("Car {} reach the check count limitation: {}", tenant.getCarNumber(), MAX_CHECK_COUNT);
-        taskManger.cancelCheckTask(tenant);
+        cancelCheckTask(tenant);
       }
       return;
     }
 
-    taskManger.cancelCheckTask(tenant);
+    cancelCheckTask(tenant);
 
     Integer parkTime = parkDetail.getParkingFee().getParkingLongTime();
-    Duration initDelay = getInitDelay(parkTime);
+    Duration initDelay = getInitPayDelay(parkTime);
     taskManger.schedulePayTask(tenant, initDelay);
 
     LocalDateTime parkAtTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(parkDetail.getParkingFee().getPassTime()),
                                                        ZoneId.systemDefault());
     log.info("Car {} is found, it's parked at: {}, already parked: {} min, scheduled to pay after: {} min",
              tenant.getCarNumber(), parkAtTime, parkTime, initDelay.toMinutes());
+  }
+
+  public void incCheckCount(Tenant tenant) {
+    checkCounters.put(tenant, checkCounters.get(tenant) + 1);
+  }
+
+  public void cancelCheckTask(Tenant tenant) {
+    boolean canceled = checkTasks.get(tenant).cancel(false);
+    checkTasks.remove(tenant);
+    checkCounters.remove(tenant);
+    if (canceled) {
+      log.info("Check task for car {} is canceled", tenant.getCarNumber());
+    } else {
+      log.error("Cancel check task for car {} failed", tenant.getCarNumber());
+    }
   }
 
   private ParkDetail getParkDetail(Tenant tenant, Member member) {
@@ -88,7 +123,7 @@ public class CheckService {
     }
   }
 
-  private Duration getInitDelay(Integer parkTime) {
+  private Duration getInitPayDelay(Integer parkTime) {
     int payPeriod = (int) PAY_PERIOD.toMinutes();
 
     int initialDelay;

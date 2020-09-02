@@ -16,47 +16,13 @@ import java.util.concurrent.ScheduledFuture;
 @Log4j2
 public class TaskManger {
   public static final Duration PAY_PERIOD = Duration.ofMinutes(60);
-  private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
-  private final Map<Tenant, ScheduledFuture<?>> checkTasks = new ConcurrentHashMap<>();
-  private final Map<Tenant, Integer> checkCounters = new ConcurrentHashMap<>();
   private final Map<Tenant, ScheduledFuture<?>> payTasks = new ConcurrentHashMap<>();
 
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
 
   @Autowired
-  private CheckService checkService;
-
-  @Autowired
   private PayService payService;
-
-  public void scheduleCheckTask(Tenant tenant) {
-    checkCounters.put(tenant, 0);
-    ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
-      checkService.check(tenant);
-    }, CHECK_PERIOD);
-
-    checkTasks.put(tenant, future);
-  }
-
-  public void incCheckCount(Tenant tenant) {
-    checkCounters.put(tenant, checkCounters.get(tenant) + 1);
-  }
-
-  public Integer getCheckCount(Tenant tenant) {
-    return checkCounters.get(tenant);
-  }
-
-  public void cancelCheckTask(Tenant tenant) {
-    boolean canceled = checkTasks.get(tenant).cancel(false);
-    checkTasks.remove(tenant);
-    checkCounters.remove(tenant);
-    if (canceled) {
-      log.info("Check task for tenant {} canceled successfully", tenant.getCarNumber());
-    } else {
-      log.error("Check task for tenant {} canceled failed", tenant.getCarNumber());
-    }
-  }
 
   public void schedulePayTask(Tenant tenant, Duration initialDelay) {
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
