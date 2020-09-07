@@ -10,6 +10,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import javax.persistence.PrePersist;
 import javax.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,7 +20,7 @@ import java.time.LocalDateTime;
 @Table(name = "members")
 public class Member {
   @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Integer id;
 
   private String userId;
@@ -34,4 +35,11 @@ public class Member {
 
   @ManyToOne(fetch = FetchType.LAZY)
   private Tenant tenant;
+
+  @PrePersist
+  void preInsert() {
+    if (this.lastPaidAt == null) {
+      this.lastPaidAt = LocalDate.of(2020, 1, 1);
+    }
+  }
 }
