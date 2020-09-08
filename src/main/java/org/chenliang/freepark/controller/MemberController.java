@@ -36,7 +36,7 @@ public class MemberController {
         return modelMapper.map(member, MemberDto.class);
     }
 
-    @GetMapping("/tenant/{id}/members")
+    @GetMapping("/tenants/{id}/members")
     public List<MemberDto> getMembersOfTenant(@PathVariable Integer id) {
         return memberRepository.findByTenantId(id).stream()
                 .map(member -> modelMapper.map(member, MemberDto.class))
