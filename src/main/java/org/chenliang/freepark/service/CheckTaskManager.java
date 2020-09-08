@@ -1,6 +1,7 @@
 package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
+import org.chenliang.freepark.model.CheckTask;
 import org.chenliang.freepark.model.Member;
 import org.chenliang.freepark.model.ParkDetail;
 import org.chenliang.freepark.model.Tenant;
@@ -9,11 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -24,8 +21,7 @@ public class CheckTaskManager {
   private static final int MAX_CHECK_COUNT = 9;
   private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
 
-  private final Map<Integer, ScheduledFuture<?>> checkTasks = new ConcurrentHashMap<>();
-  private final Map<Integer, Integer> checkCounters = new ConcurrentHashMap<>();
+  private final Map<Integer, CheckTask> checkTasks = new ConcurrentHashMap<>();
 
   @Autowired
   private MemberRepository memberRepository;
@@ -45,16 +41,35 @@ public class CheckTaskManager {
       return;
     }
 
-    checkCounters.put(tenant.getId(), 0);
+    CheckTask checkTask = CheckTask.builder()
+        .tenant(tenant)
+        .startAt(LocalDateTime.now())
+        .checkCount(0)
+        .period((int) CHECK_PERIOD.toMinutes())
+        .build();
+
+    checkTasks.put(tenant.getId(), checkTask);
+
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
       check(tenant);
     }, CHECK_PERIOD);
-    checkTasks.put(tenant.getId(), future);
+
+    checkTask.setFuture(future);
+  }
+
+  public CheckTask getTask(Tenant tenant) {
+    return checkTasks.get(tenant.getId());
+  }
+
+  private void updateCheckTaskStatus(Tenant tenant) {
+    CheckTask checkTask = checkTasks.get(tenant.getId());
+    checkTask.setLastCheckAt(LocalDateTime.now());
+    checkTask.setCheckCount(checkTask.getCheckCount() + 1);
   }
 
   private void check(Tenant tenant) {
-    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkCounters.get(tenant.getId()));
-    incCheckCount(tenant);
+    updateCheckTaskStatus(tenant);
+    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkTasks.get(tenant.getId()).getCheckCount());
 
     LocalDate today = LocalDate.now();
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
@@ -67,7 +82,7 @@ public class CheckTaskManager {
     ParkDetail parkDetail = getParkDetail(tenant, member);
 
     if (parkDetail == null) {
-      if (checkCounters.get(tenant.getId()) > MAX_CHECK_COUNT) {
+      if (checkTasks.get(tenant.getId()).getCheckCount() == MAX_CHECK_COUNT) {
         log.info("Car {} reach the check count limitation: {}", tenant.getCarNumber(), MAX_CHECK_COUNT);
         cancelCheckTask(tenant);
       }
@@ -87,14 +102,9 @@ public class CheckTaskManager {
     payTaskManager.schedulePayTask(tenant, parkTime);
   }
 
-  public void incCheckCount(Tenant tenant) {
-    checkCounters.put(tenant.getId(), checkCounters.get(tenant.getId()) + 1);
-  }
-
-  public void cancelCheckTask(Tenant tenant) {
-    boolean canceled = checkTasks.get(tenant.getId()).cancel(false);
+  private void cancelCheckTask(Tenant tenant) {
+    boolean canceled = checkTasks.get(tenant.getId()).getFuture().cancel(false);
     checkTasks.remove(tenant.getId());
-    checkCounters.remove(tenant.getId());
     if (canceled) {
       log.info("Check task for car {} is canceled", tenant.getCarNumber());
     } else {
@@ -118,7 +128,7 @@ public class CheckTaskManager {
       return null;
     } else {
       log.warn("Call park detail API for car {} return error code: {}, message: {}",
-               tenant.getCarNumber(), parkDetail.getCode(), parkDetail.getMsg());
+          tenant.getCarNumber(), parkDetail.getCode(), parkDetail.getMsg());
       return null;
     }
   }
