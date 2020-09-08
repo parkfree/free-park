@@ -19,7 +19,7 @@ public class PaymentController {
   @Autowired
   private TenantRepository tenantRepository;
 
-  @PostMapping("/payment/tenant/{id}")
+  @PostMapping("/tenants/{id}/payment")
   public ResponseEntity<Void> pay(@PathVariable Integer id) {
     Tenant tenant = tenantRepository.getOne(id);
     PayStatus payStatus = paymentService.pay(tenant);
