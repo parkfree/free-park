@@ -104,7 +104,7 @@ public class CheckTaskManager {
     LocalDateTime parkAtTime = Instant.ofEpochMilli(parkAtTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
     log.info("Car {} is found, parked at: {}, already parked: {} min", tenant.getCarNumber(), parkAtTime, parkTime);
 
-    payTaskManager.schedulePayTask(tenant, parkTime);
+    payTaskManager.schedulePayTask(tenant, parkTime, parkAtTime);
   }
 
   public void cancelCheckTask(Tenant tenant) {
