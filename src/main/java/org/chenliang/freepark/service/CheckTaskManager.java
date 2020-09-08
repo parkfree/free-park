@@ -102,7 +102,7 @@ public class CheckTaskManager {
     payTaskManager.schedulePayTask(tenant, parkTime);
   }
 
-  private void cancelCheckTask(Tenant tenant) {
+  public void cancelCheckTask(Tenant tenant) {
     boolean canceled = checkTasks.get(tenant.getId()).getFuture().cancel(false);
     checkTasks.remove(tenant.getId());
     if (canceled) {

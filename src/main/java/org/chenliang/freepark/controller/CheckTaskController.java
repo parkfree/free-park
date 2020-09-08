@@ -8,10 +8,8 @@ import org.chenliang.freepark.repository.TenantRepository;
 import org.chenliang.freepark.service.CheckTaskManager;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class CheckTaskController {
@@ -41,5 +39,14 @@ public class CheckTaskController {
       throw new ResourceNotFoundException("Check task not found");
     }
     return modelMapper.map(checkTask, CheckTaskDto.class);
+  }
+
+  @DeleteMapping("/tenants/{id}/checktask")
+  public ResponseEntity<Void> cancelCheckTask(@PathVariable Integer id) {
+    Tenant tenant = tenantRepository.getOne(id);
+    if (checkTaskManager.getTask(tenant) != null) {
+      checkTaskManager.cancelCheckTask(tenant);
+    }
+    return ResponseEntity.ok().build();
   }
 }
