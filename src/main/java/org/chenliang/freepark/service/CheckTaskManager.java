@@ -11,6 +11,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -59,6 +60,10 @@ public class CheckTaskManager {
 
   public CheckTask getTask(Tenant tenant) {
     return checkTasks.get(tenant.getId());
+  }
+
+  public Collection<CheckTask> getTasks() {
+    return checkTasks.values();
   }
 
   private void updateCheckTaskStatus(Tenant tenant) {

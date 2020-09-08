@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 public class CheckTaskController {
   @Autowired
@@ -39,6 +42,13 @@ public class CheckTaskController {
       throw new ResourceNotFoundException("Check task not found");
     }
     return modelMapper.map(checkTask, CheckTaskDto.class);
+  }
+
+  @GetMapping("/checktasks")
+  public List<CheckTaskDto> getCheckTaskList() {
+    return checkTaskManager.getTasks().stream()
+        .map(checkTask -> modelMapper.map(checkTask, CheckTaskDto.class))
+        .collect(Collectors.toList());
   }
 
   @DeleteMapping("/tenants/{id}/checktask")
