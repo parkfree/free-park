@@ -43,7 +43,7 @@ public class CheckTaskManager {
     }
 
     CheckTask checkTask = CheckTask.builder()
-        .tenant(tenant)
+        .tenantId(tenant.getId())
         .startAt(LocalDateTime.now())
         .checkCount(0)
         .period((int) CHECK_PERIOD.toMinutes())
