@@ -3,6 +3,7 @@ package org.chenliang.freepark.controller;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.Member;
 import org.chenliang.freepark.model.MemberDto;
+import org.chenliang.freepark.model.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.modelmapper.ModelMapper;
@@ -32,8 +33,9 @@ public class MemberController {
 
     @GetMapping("/members/{id}")
     public MemberDto getMember(@PathVariable Integer id) {
-        Member member = memberRepository.getOne(id);
-        return modelMapper.map(member, MemberDto.class);
+        return memberRepository.findById(id)
+            .map(member -> modelMapper.map(member, MemberDto.class))
+            .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
     }
 
     @GetMapping("/tenants/{id}/members")
@@ -51,13 +53,16 @@ public class MemberController {
 
     @PutMapping("/members/{id}")
     public MemberDto updateMember(@PathVariable Integer id, @RequestBody MemberDto memberDto) {
-        Member member = memberRepository.getOne(id);
+        Member member = memberRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+        Tenant tenant = tenantRepository.findById(memberDto.getTenantId())
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
         member.setMemType(memberDto.getMemType());
         member.setMobile(memberDto.getMobile());
         member.setOpenId(memberDto.getOpenId());
         member.setUserId(memberDto.getUserId());
         member.setLastPaidAt(memberDto.getLastPaidAt());
-        member.setTenant(tenantRepository.getOne(memberDto.getTenantId()));
+        member.setTenant(tenant);
         return modelMapper.map(memberRepository.save(member), MemberDto.class);
     }
 

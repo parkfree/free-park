@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class PayTaskController {
@@ -25,12 +26,10 @@ public class PayTaskController {
 
   @GetMapping("/tenants/{id}/paytask")
   public PayTask getPayTask(@PathVariable Integer id) {
-    Tenant tenant = tenantRepository.getOne(id);
-    PayTask payTask = payTaskManager.getTask(tenant);
-    if (payTask == null) {
-      throw new ResourceNotFoundException("Pay task not found");
-    }
-    return payTask;
+    Tenant tenant = tenantRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+    return Optional.ofNullable(payTaskManager.getTask(tenant))
+        .orElseThrow(() -> new ResourceNotFoundException("Pay task not found"));
   }
 
   @GetMapping("/paytasks")
@@ -40,10 +39,9 @@ public class PayTaskController {
 
   @DeleteMapping("/tenants/{id}/paytask")
   public ResponseEntity<Void> cancelPayTask(@PathVariable Integer id) {
-    Tenant tenant = tenantRepository.getOne(id);
-    if (payTaskManager.getTask(tenant) != null) {
-      payTaskManager.cancelPayTask(tenant);
-    }
+    Tenant tenant = tenantRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+    payTaskManager.cancelPayTask(tenant);
     return ResponseEntity.ok().build();
   }
 }

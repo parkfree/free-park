@@ -28,8 +28,9 @@ public class TenantController {
 
   @GetMapping("/tenants/{id}")
   public TenantDto getTenant(@PathVariable Integer id) {
-    Tenant tenant = tenantRepository.getOne(id);
-    return modelMapper.map(tenant, TenantDto.class);
+    return tenantRepository.findById(id)
+        .map(tenant -> modelMapper.map(tenant, TenantDto.class))
+        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
   }
 
   @GetMapping("/tenants")
@@ -47,7 +48,8 @@ public class TenantController {
 
   @PutMapping("/tenants/{id}")
   public TenantDto createTenant(@PathVariable Integer id, @RequestBody TenantDto tenantDto) {
-    Tenant tenant = tenantRepository.getOne(id);
+    Tenant tenant = tenantRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
     tenant.setCarNumber(tenantDto.getCarNumber());
     tenant.setOwner(tenantDto.getOwner());
     tenant.setEmail(tenantDto.getEmail());

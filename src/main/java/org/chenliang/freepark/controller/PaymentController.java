@@ -1,6 +1,7 @@
 package org.chenliang.freepark.controller;
 
 import org.chenliang.freepark.exception.PaymentErrorException;
+import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.PayStatus;
 import org.chenliang.freepark.model.Tenant;
 import org.chenliang.freepark.repository.TenantRepository;
@@ -21,7 +22,8 @@ public class PaymentController {
 
   @PostMapping("/tenants/{id}/payments")
   public ResponseEntity<Void> pay(@PathVariable Integer id) {
-    Tenant tenant = tenantRepository.getOne(id);
+    Tenant tenant = tenantRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
     PayStatus payStatus = paymentService.pay(tenant);
     if(payStatus == PayStatus.SUCCESS) {
       return ResponseEntity.ok().body(null);
