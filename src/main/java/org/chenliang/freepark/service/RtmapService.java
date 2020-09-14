@@ -4,7 +4,9 @@ import org.chenliang.freepark.configuration.FreeParkConfig;
 import org.chenliang.freepark.model.Member;
 import org.chenliang.freepark.model.ParkDetail;
 import org.chenliang.freepark.model.Payment;
+import org.chenliang.freepark.model.PointDto;
 import org.chenliang.freepark.model.Status;
+import org.chenliang.freepark.model.Tenant;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -12,9 +14,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
 
+import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class RtmapService {
   private final RestTemplate client;
   private final FreeParkConfig config;
@@ -53,6 +63,31 @@ public class RtmapService {
     HttpEntity<Payment> request = new HttpEntity<>(payment, createHeaders(member));
 
     return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
+  }
+
+  public void signIn(Member member, Tenant tenant) {
+    final PointDto param = PointDto.builder()
+        .openid(member.getOpenId())
+        .channelId(1001)
+        .marketId("12964")
+        .cardNo(tenant.getCarNumber())
+        .mobile(member.getMobile())
+        .build();
+    final String jsonString = JSONObject.toJSONString(param);
+
+    HttpClient client = HttpClient.newHttpClient();
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create("https://appsmall.rtmap.com/sign/signRecord"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(jsonString))
+        .build();
+    try {
+      HttpResponse<String> response = client.send(request,
+          HttpResponse.BodyHandlers.ofString());
+      log.info("Sign in response : {}", response.body());
+    } catch (Exception e) {
+      log.error("Sign in error", e);
+    }
   }
 
   private HttpHeaders createHeaders(Member member) {
