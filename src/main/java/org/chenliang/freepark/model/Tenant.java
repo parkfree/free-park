@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "tenants")
 public class Tenant {
+  public static final String DEFAULT_ROLE = "ROLE_USER";
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Integer id;
@@ -22,6 +23,9 @@ public class Tenant {
 
   private String email;
   private String owner;
+  private String password;
+  private String role;
+
   @CreationTimestamp
   private LocalDateTime createdAt;
   @UpdateTimestamp

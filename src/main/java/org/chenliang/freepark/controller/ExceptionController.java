@@ -1,6 +1,7 @@
 package org.chenliang.freepark.controller;
 
 import lombok.extern.log4j.Log4j2;
+import org.chenliang.freepark.exception.InvalidRequestException;
 import org.chenliang.freepark.exception.PaymentErrorException;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.ErrorResponse;
@@ -27,6 +28,11 @@ public class ExceptionController {
   @ExceptionHandler(value = PaymentErrorException.class)
   public ResponseEntity<ErrorResponse> paymentExceptionHandler(PaymentErrorException e) {
     return response(BAD_REQUEST, 100, e.getPayStatus().toString());
+  }
+
+  @ExceptionHandler(value = InvalidRequestException.class)
+  public ResponseEntity<ErrorResponse> invalidRequestExceptionHandler(InvalidRequestException e) {
+    return response(BAD_REQUEST, 100, e.getMessage());
   }
 
   @ExceptionHandler(value = {EntityNotFoundException.class, ResourceNotFoundException.class})
