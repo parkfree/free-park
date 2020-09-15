@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -30,14 +31,14 @@ public class AuthController {
   private BCryptPasswordEncoder passwordEncoder;
 
   @PostMapping("/signup")
-  public TokenResponse signUp(@RequestBody SignUpRequest request) {
+  public TokenResponse signUp(@Valid @RequestBody SignUpRequest request) {
     validateInviteCode(request.getInviteCode());
     Tenant tenant = createTenant(request);
     return createToken(tenant);
   }
 
   @PostMapping("/login")
-  public TokenResponse login(@RequestBody LoginRequest request) {
+  public TokenResponse login(@Valid @RequestBody LoginRequest request) {
     String email = request.getEmail();
     Tenant tenant = tenantRepository.findByEmail(email)
         .orElseThrow(() -> new InvalidRequestException("Invalid email or password"));

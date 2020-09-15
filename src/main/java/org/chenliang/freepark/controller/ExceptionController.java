@@ -7,10 +7,15 @@ import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import javax.persistence.EntityNotFoundException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -38,6 +43,20 @@ public class ExceptionController {
   @ExceptionHandler(value = {EntityNotFoundException.class, ResourceNotFoundException.class})
   public ResponseEntity<ErrorResponse> notFoundExceptionHandler(Exception e) {
     return response(NOT_FOUND, 101, e.getMessage());
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleValidationExceptions(
+      MethodArgumentNotValidException e) {
+    Map<String, String> errors = new HashMap<>();
+    e.getBindingResult().getAllErrors().forEach((error) -> {
+      String fieldName = ((FieldError) error).getField();
+      String errorMessage = error.getDefaultMessage();
+      errors.put(fieldName, errorMessage);
+    });
+    ResponseEntity<ErrorResponse> response = response(NOT_FOUND, 101, "Invalid parameters");
+    response.getBody().setDetails(errors);
+    return response;
   }
 
   private ResponseEntity<ErrorResponse> response(HttpStatus status, Integer errorCode, String errorMessage) {
