@@ -1,10 +1,7 @@
 package org.chenliang.freepark.controller;
 
 import org.chenliang.freepark.exception.InvalidRequestException;
-import org.chenliang.freepark.model.AccessToken;
-import org.chenliang.freepark.model.SignUpRequest;
-import org.chenliang.freepark.model.Tenant;
-import org.chenliang.freepark.model.TokenResponse;
+import org.chenliang.freepark.model.*;
 import org.chenliang.freepark.repository.AccessTokenRepository;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +34,18 @@ public class AuthController {
     validateInviteCode(request.getInviteCode());
     Tenant tenant = createTenant(request);
     return createToken(tenant);
+  }
+
+  @PostMapping("/login")
+  public TokenResponse login(@RequestBody LoginRequest request) {
+    String email = request.getEmail();
+    Tenant tenant = tenantRepository.findByEmail(email)
+        .orElseThrow(() -> new InvalidRequestException("Invalid email or password"));
+    if (passwordEncoder.matches(request.getPassword(), tenant.getPassword())) {
+      return createToken(tenant);
+    } else {
+      throw new InvalidRequestException("Invalid email or password");
+    }
   }
 
   private TokenResponse createToken(Tenant tenant) {
