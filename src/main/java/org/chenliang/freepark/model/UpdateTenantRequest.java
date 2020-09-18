@@ -4,18 +4,21 @@ import lombok.Data;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 
 @Data
-public class SignUpRequest {
+public class UpdateTenantRequest {
   @NotBlank
   private String carNumber;
+
   @NotBlank
   @Email
   private String email;
+
   @NotBlank
   private String owner;
-  @NotBlank
+
   private String password;
-  @NotBlank
-  private String inviteCode;
+  @Pattern(regexp = "ROLE_(AMDMIN|USER)")
+  private String role;
 }

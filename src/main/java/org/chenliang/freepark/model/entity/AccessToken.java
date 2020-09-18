@@ -1,4 +1,4 @@
-package org.chenliang.freepark.model;
+package org.chenliang.freepark.model.entity;
 
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;

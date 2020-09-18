@@ -1,7 +1,7 @@
 package org.chenliang.freepark.command;
 
 import lombok.extern.log4j.Log4j2;
-import org.chenliang.freepark.model.Tenant;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.chenliang.freepark.service.CheckTaskManager;
 import org.springframework.beans.factory.annotation.Autowired;

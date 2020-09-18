@@ -1,9 +1,12 @@
-package org.chenliang.freepark.controller;
+package org.chenliang.freepark.controller.admin;
 
 import org.chenliang.freepark.exception.ResourceNotFoundException;
-import org.chenliang.freepark.model.Tenant;
-import org.chenliang.freepark.model.TenantDto;
+import org.chenliang.freepark.model.CreateTenantRequest;
+import org.chenliang.freepark.model.UpdateTenantRequest;
+import org.chenliang.freepark.model.entity.Tenant;
+import org.chenliang.freepark.model.TenantResponse;
 import org.chenliang.freepark.repository.TenantRepository;
+import org.chenliang.freepark.service.TenantService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,41 +16,41 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
+@RequestMapping("/admin")
 public class TenantController {
   @Autowired
   private TenantRepository tenantRepository;
 
   @Autowired
+  private TenantService tenantService;
+
+  @Autowired
   private ModelMapper modelMapper;
 
   @GetMapping("/tenants/{id}")
-  public TenantDto getTenant(@PathVariable Integer id) {
+  public TenantResponse getTenant(@PathVariable Integer id) {
     return tenantRepository.findById(id)
-        .map(tenant -> modelMapper.map(tenant, TenantDto.class))
+        .map(tenant -> modelMapper.map(tenant, TenantResponse.class))
         .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
   }
 
   @GetMapping("/tenants")
-  public List<TenantDto> getTenants() {
+  public List<TenantResponse> getTenants() {
     return tenantRepository.findAll().stream()
-        .map(tenant -> modelMapper.map(tenant, TenantDto.class))
+        .map(tenant -> modelMapper.map(tenant, TenantResponse.class))
         .collect(Collectors.toList());
   }
 
   @PostMapping("/tenants")
-  public TenantDto createTenant(@RequestBody TenantDto tenantDto) {
-    Tenant tenant = modelMapper.map(tenantDto, Tenant.class);
-    return modelMapper.map(tenantRepository.save(tenant), TenantDto.class);
+  public TenantResponse createTenant(@RequestBody CreateTenantRequest request) {
+    Tenant tenant = tenantService.createTenant(request);
+    return modelMapper.map(tenant, TenantResponse.class);
   }
 
   @PutMapping("/tenants/{id}")
-  public TenantDto createTenant(@PathVariable Integer id, @RequestBody TenantDto tenantDto) {
-    Tenant tenant = tenantRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
-    tenant.setCarNumber(tenantDto.getCarNumber());
-    tenant.setOwner(tenantDto.getOwner());
-    tenant.setEmail(tenantDto.getEmail());
-    return modelMapper.map(tenantRepository.save(tenant), TenantDto.class);
+  public TenantResponse updateTenant(@PathVariable Integer id, @RequestBody UpdateTenantRequest request) {
+    Tenant tenant = tenantService.updateTenant(id, request);
+    return modelMapper.map(tenantRepository.save(tenant), TenantResponse.class);
   }
 
   @DeleteMapping("/tenants/{id}")

@@ -2,9 +2,9 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.CheckTask;
-import org.chenliang.freepark.model.Member;
-import org.chenliang.freepark.model.ParkDetail;
-import org.chenliang.freepark.model.Tenant;
+import org.chenliang.freepark.model.entity.Member;
+import org.chenliang.freepark.model.rtmap.ParkDetail;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;

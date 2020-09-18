@@ -1,12 +1,12 @@
 package org.chenliang.freepark.service;
 
 import org.chenliang.freepark.configuration.FreeParkConfig;
-import org.chenliang.freepark.model.Member;
-import org.chenliang.freepark.model.ParkDetail;
-import org.chenliang.freepark.model.Payment;
-import org.chenliang.freepark.model.PointDto;
-import org.chenliang.freepark.model.Status;
-import org.chenliang.freepark.model.Tenant;
+import org.chenliang.freepark.model.entity.Member;
+import org.chenliang.freepark.model.rtmap.ParkDetail;
+import org.chenliang.freepark.model.rtmap.Payment;
+import org.chenliang.freepark.model.rtmap.PointDto;
+import org.chenliang.freepark.model.rtmap.Status;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;

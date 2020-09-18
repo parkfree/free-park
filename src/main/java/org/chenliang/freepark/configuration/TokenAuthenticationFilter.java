@@ -1,7 +1,7 @@
 package org.chenliang.freepark.configuration;
 
 import org.chenliang.freepark.exception.TokenAuthenticationException;
-import org.chenliang.freepark.service.TokenAuthenticateService;
+import org.chenliang.freepark.service.TokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,7 +19,7 @@ import java.util.List;
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
   @Autowired
-  private TokenAuthenticateService tokenAuthenticateService;
+  private TokenService tokenService;
 
   @Autowired
   TokenAuthenticationEntryPoint tokenAuthenticationEntryPoint;
@@ -30,13 +30,13 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                                   FilterChain chain) throws IOException, ServletException {
     String header = req.getHeader("Authorization");
 
-    if (header == null || !header.startsWith(TokenAuthenticateService.TOKEN_PREFIX)) {
+    if (header == null || !header.startsWith(TokenService.TOKEN_PREFIX)) {
       chain.doFilter(req, res);
       return;
     }
 
     try {
-      tokenAuthenticateService.authenticate(req).ifPresent(tenant -> {
+      tokenService.authenticate(req).ifPresent(tenant -> {
         List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(tenant.getRole()));
         Authentication authentication = new UsernamePasswordAuthenticationToken(tenant, null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);

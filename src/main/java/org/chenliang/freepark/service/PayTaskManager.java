@@ -4,7 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.PayHistory;
 import org.chenliang.freepark.model.PayStatus;
 import org.chenliang.freepark.model.PayTask;
-import org.chenliang.freepark.model.Tenant;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;

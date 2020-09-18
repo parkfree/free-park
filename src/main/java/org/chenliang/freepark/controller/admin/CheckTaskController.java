@@ -1,8 +1,8 @@
-package org.chenliang.freepark.controller;
+package org.chenliang.freepark.controller.admin;
 
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.CheckTask;
-import org.chenliang.freepark.model.Tenant;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.chenliang.freepark.service.CheckTaskManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@RequestMapping("/admin")
 public class CheckTaskController {
   @Autowired
   private TenantRepository tenantRepository;

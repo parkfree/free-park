@@ -1,4 +1,4 @@
-package org.chenliang.freepark.model;
+package org.chenliang.freepark.model.rtmap;
 
 import lombok.Builder;
 import lombok.Data;

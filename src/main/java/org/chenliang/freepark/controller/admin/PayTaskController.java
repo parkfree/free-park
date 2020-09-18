@@ -1,8 +1,8 @@
-package org.chenliang.freepark.controller;
+package org.chenliang.freepark.controller.admin;
 
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.PayTask;
-import org.chenliang.freepark.model.Tenant;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.chenliang.freepark.service.PayTaskManager;
 import org.springframework.beans.factory.annotation.Autowired;
