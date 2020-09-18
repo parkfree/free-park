@@ -14,7 +14,7 @@ public class AccessToken {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Integer id;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne
   private Tenant tenant;
   private String token;
   private LocalDateTime expireAt;
