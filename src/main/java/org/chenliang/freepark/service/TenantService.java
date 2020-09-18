@@ -29,15 +29,25 @@ public class TenantService {
     return tenantRepository.save(tenant);
   }
 
-  public Tenant updateTenant(Integer id, UpdateTenantRequest request) {
+  public Tenant adminUpdateTenant(Integer id, UpdateTenantRequest request) {
     Tenant tenant = tenantRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
     tenant.setCarNumber(request.getCarNumber());
     tenant.setOwner(request.getOwner());
     tenant.setEmail(request.getEmail());
+    if (Strings.isNotBlank(request.getPassword())) {
+      tenant.setPassword(passwordEncoder.encode(request.getPassword()));
+    }
     if (request.getRole() != null) {
       tenant.setRole(request.getRole());
     }
+    return tenantRepository.save(tenant);
+  }
+
+  public Tenant updateCurrentLoginTenant(Tenant tenant, UpdateTenantRequest request) {
+    tenant.setCarNumber(request.getCarNumber());
+    tenant.setOwner(request.getOwner());
+    tenant.setEmail(request.getEmail());
     if (Strings.isNotBlank(request.getPassword())) {
       tenant.setPassword(passwordEncoder.encode(request.getPassword()));
     }

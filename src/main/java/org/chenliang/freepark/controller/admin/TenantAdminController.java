@@ -2,9 +2,9 @@ package org.chenliang.freepark.controller.admin;
 
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.CreateTenantRequest;
+import org.chenliang.freepark.model.TenantResponse;
 import org.chenliang.freepark.model.UpdateTenantRequest;
 import org.chenliang.freepark.model.entity.Tenant;
-import org.chenliang.freepark.model.TenantResponse;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.chenliang.freepark.service.TenantService;
 import org.modelmapper.ModelMapper;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin")
-public class TenantController {
+public class TenantAdminController {
   @Autowired
   private TenantRepository tenantRepository;
 
@@ -49,8 +49,8 @@ public class TenantController {
 
   @PutMapping("/tenants/{id}")
   public TenantResponse updateTenant(@PathVariable Integer id, @RequestBody UpdateTenantRequest request) {
-    Tenant tenant = tenantService.updateTenant(id, request);
-    return modelMapper.map(tenantRepository.save(tenant), TenantResponse.class);
+    Tenant tenant = tenantService.adminUpdateTenant(id, request);
+    return modelMapper.map(tenant, TenantResponse.class);
   }
 
   @DeleteMapping("/tenants/{id}")
