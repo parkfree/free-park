@@ -5,15 +5,24 @@ import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.CreateTenantRequest;
 import org.chenliang.freepark.model.UpdateTenantRequest;
 import org.chenliang.freepark.model.entity.Tenant;
+import org.chenliang.freepark.repository.AccessTokenRepository;
+import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TenantService {
   @Autowired
   private TenantRepository tenantRepository;
+
+  @Autowired
+  private MemberRepository memberRepository;
+
+  @Autowired
+  private AccessTokenRepository accessTokenRepository;
 
   @Autowired
   private BCryptPasswordEncoder passwordEncoder;
@@ -52,5 +61,15 @@ public class TenantService {
       tenant.setPassword(passwordEncoder.encode(request.getPassword()));
     }
     return tenantRepository.save(tenant);
+  }
+
+  @Transactional
+  public void deleteTenant(Integer tenantId) {
+    if (!tenantRepository.existsById(tenantId)) {
+      throw new ResourceNotFoundException("Tenant not found");
+    }
+    tenantRepository.deleteById(tenantId);
+    memberRepository.deleteInBulkByTenantId(tenantId);
+    accessTokenRepository.deleteInBulkByTenantId(tenantId);
   }
 }

@@ -55,10 +55,7 @@ public class TenantAdminController {
 
   @DeleteMapping("/tenants/{id}")
   public ResponseEntity<Void> deleteTenant(@PathVariable Integer id) {
-    if (!tenantRepository.existsById(id)) {
-      throw new ResourceNotFoundException("Tenant not found");
-    }
-    tenantRepository.deleteById(id);
+    tenantService.deleteTenant(id);
     return ResponseEntity.ok().build();
   }
 }
