@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/admin")
-public class CheckTaskController {
+public class AdminCheckTaskController {
   @Autowired
   private TenantRepository tenantRepository;
 

@@ -44,9 +44,11 @@ public class CheckTaskManager {
 
     CheckTask checkTask = CheckTask.builder()
         .tenantId(tenant.getId())
-        .startAt(LocalDateTime.now())
+        .createdAt(LocalDateTime.now())
         .checkCount(0)
-        .period((int) CHECK_PERIOD.toMinutes())
+        .checkCountLimit(MAX_CHECK_COUNT)
+        .nextScheduledAt(LocalDateTime.now())
+        .periodMinutes((int) CHECK_PERIOD.toMinutes())
         .build();
 
     checkTasks.put(tenant.getId(), checkTask);
@@ -68,7 +70,8 @@ public class CheckTaskManager {
 
   private void updateCheckTaskStatus(Tenant tenant) {
     CheckTask checkTask = checkTasks.get(tenant.getId());
-    checkTask.setLastCheckAt(LocalDateTime.now());
+    checkTask.setLastScheduledAt(LocalDateTime.now());
+    checkTask.setNextScheduledAt(LocalDateTime.now().plus(CHECK_PERIOD));
     checkTask.setCheckCount(checkTask.getCheckCount() + 1);
   }
 

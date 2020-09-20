@@ -1,5 +1,6 @@
 package org.chenliang.freepark.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Data;
@@ -11,10 +12,22 @@ import java.util.concurrent.ScheduledFuture;
 @Builder
 public class CheckTask {
   private Integer tenantId;
-  private LocalDateTime startAt;
-  private LocalDateTime lastCheckAt;
+
+  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+  private LocalDateTime createdAt;
+
+  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+  private LocalDateTime lastScheduledAt;
+
+  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+  private LocalDateTime nextScheduledAt;
+
   private Integer checkCount;
-  private Integer period;
+
+  private Integer checkCountLimit;
+
+  private Integer periodMinutes;
+
   @JsonIgnore
   private ScheduledFuture<?> future;
 }
