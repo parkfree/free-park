@@ -4,6 +4,7 @@ import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.entity.Member;
+import org.chenliang.freepark.model.entity.Payment;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Status;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,30 +35,43 @@ public class PaymentService {
   @Autowired
   private ModelMapper modelMapper;
 
-  public PaymentStatus pay(Tenant tenant) {
+  private static final Map<PaymentStatus, String> statusComment = Map.of(
+      PaymentStatus.SUCCESS, "支付成功",
+      PaymentStatus.NO_AVAILABLE_MEMBER, "没有可用的会员账号用于支付",
+      PaymentStatus.CAR_NOT_FOUND, "车辆不在停车场",
+      PaymentStatus.NO_NEED_TO_PAY, "当前时段已经支付过，不需要再支付",
+      PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工支付"
+  );
+
+  public PaymentResponse pay(Tenant tenant) {
+    Payment payment = new Payment();
+    payment.setTenant(tenant);
+
     LocalDate today = LocalDate.now();
     log.info("Start to pay car {}", tenant.getCarNumber());
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task", tenant.getCarNumber());
-      return PaymentStatus.NO_AVAILABLE_MEMBER;
+      return createResponse(payment, PaymentStatus.NO_AVAILABLE_MEMBER);
     }
+
+    payment.setMember(member);
 
     ParkDetail parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
 
     if (parkDetail.getCode() == 400) {
       log.warn("Car {} is not found when paying", tenant.getCarNumber());
-      return PaymentStatus.CAR_NOT_FOUND;
+      return createResponse(payment, PaymentStatus.CAR_NOT_FOUND);
     } else if (parkDetail.getCode() != 200) {
       log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(), parkDetail.getMsg());
-      return PaymentStatus.PARK_DETAIL_API_ERROR;
+      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR, parkDetail.getMsg());
     }
 
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
 
     if (parkingFee.getReceivable() == 0) {
       log.info("Car {} is already paid", tenant.getCarNumber());
-      return PaymentStatus.NO_NEED_TO_PAY;
+      return createResponse(payment, PaymentStatus.NO_NEED_TO_PAY);
     }
 
     if (parkingFee.getMemberDeductible() == 0) {
@@ -66,10 +81,12 @@ public class PaymentService {
       return pay(tenant);
     }
 
+    payment.setAmount(parkingFee.getReceivable());
+
     if (parkingFee.getFeeNumber() != 0) {
       // TODO: notify owner
       log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
-      return PaymentStatus.NEED_WECHAT_PAY;
+      return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
     }
 
     Status status = rtmapService.pay(member, parkDetail);
@@ -78,11 +95,25 @@ public class PaymentService {
       member.setLastPaidAt(today);
       memberRepository.save(member);
       log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
-      return PaymentStatus.SUCCESS;
+      return createResponse(payment, PaymentStatus.SUCCESS);
     } else {
       log.error("Pay car {} with member {} get error response: {}", tenant.getCarNumber(), member.getMobile(), status);
-      return PaymentStatus.PAY_API_ERROR;
+      payment.setStatus(PaymentStatus.PAY_API_ERROR);
+      return createResponse(payment, PaymentStatus.PAY_API_ERROR, status.getMsg());
     }
+  }
+
+  private PaymentResponse createResponse(Payment payment, PaymentStatus status) {
+    String comment = statusComment.get(status);
+    return createResponse(payment, status, comment);
+  }
+
+  private PaymentResponse createResponse(Payment payment, PaymentStatus status, String comment) {
+    payment.setStatus(status);
+    payment.setComment(comment);
+    payment.setPaidAt(LocalDateTime.now());
+    Payment savedPayment = paymentRepository.save(payment);
+    return modelMapper.map(savedPayment, PaymentResponse.class);
   }
 
   public List<PaymentResponse> getTodayPayments(Tenant tenant) {

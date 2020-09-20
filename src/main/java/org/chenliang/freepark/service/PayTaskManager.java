@@ -2,8 +2,9 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.PayHistory;
-import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.PayTask;
+import org.chenliang.freepark.model.PaymentResponse;
+import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,9 +81,10 @@ public class PayTaskManager {
   }
 
   private void pay(Tenant tenant) {
-    PaymentStatus paymentStatus = paymentService.pay(tenant);
-    updatePayTaskStatus(tenant, paymentStatus);
+    PaymentResponse paymentResponse = paymentService.pay(tenant);
+    updatePayTaskStatus(tenant, paymentResponse);
 
+    PaymentStatus paymentStatus = paymentResponse.getStatus();
     if (paymentStatus == PaymentStatus.CAR_NOT_FOUND || paymentStatus == PaymentStatus.NO_AVAILABLE_MEMBER) {
       cancelPayTask(tenant);
     } else if (paymentStatus == PaymentStatus.SUCCESS) {
@@ -93,12 +95,12 @@ public class PayTaskManager {
     }
   }
 
-  private void updatePayTaskStatus(Tenant tenant, PaymentStatus paymentStatus) {
+  private void updatePayTaskStatus(Tenant tenant, PaymentResponse paymentResponse) {
     PayTask payTask = payTasks.get(tenant.getId());
     LocalDateTime now = LocalDateTime.now();
     PayHistory history = PayHistory.builder()
         .paidAt(now)
-        .paymentStatus(paymentStatus)
+        .paymentStatus(paymentResponse.getStatus())
         .build();
     payTask.setLastPaidAt(now);
     payTask.getPayHistories().add(history);

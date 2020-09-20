@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS `payments`
 (
     `id`         INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT,
     `tenant_id`  INTEGER             NOT NULL,
-    `member_id`  INTEGER             NOT NULL,
+    `member_id`  INTEGER,
     `amount`     INTEGER             NOT NULL DEFAULT 0,
     `status`     VARCHAR(30)         NOT NULL,
     `comment`    TEXT                NOT NULL,
