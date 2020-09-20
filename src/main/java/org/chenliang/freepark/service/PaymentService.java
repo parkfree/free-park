@@ -1,16 +1,22 @@
 package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
-import org.chenliang.freepark.model.entity.Member;
-import org.chenliang.freepark.model.rtmap.ParkDetail;
+import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentStatus;
-import org.chenliang.freepark.model.rtmap.Status;
+import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Tenant;
+import org.chenliang.freepark.model.rtmap.ParkDetail;
+import org.chenliang.freepark.model.rtmap.Status;
 import org.chenliang.freepark.repository.MemberRepository;
+import org.chenliang.freepark.repository.PaymentRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Log4j2
@@ -20,6 +26,12 @@ public class PaymentService {
 
   @Autowired
   private MemberRepository memberRepository;
+
+  @Autowired
+  private PaymentRepository paymentRepository;
+
+  @Autowired
+  private ModelMapper modelMapper;
 
   public PaymentStatus pay(Tenant tenant) {
     LocalDate today = LocalDate.now();
@@ -71,5 +83,15 @@ public class PaymentService {
       log.error("Pay car {} with member {} get error response: {}", tenant.getCarNumber(), member.getMobile(), status);
       return PaymentStatus.PAY_API_ERROR;
     }
+  }
+
+  public List<PaymentResponse> getTodayPayments(Tenant tenant) {
+    LocalDate today = LocalDate.now();
+    LocalDateTime from = today.atStartOfDay();
+    LocalDateTime to = today.plusDays(1).atStartOfDay();
+    return paymentRepository.getByTenantIdAndPaidAtBetween(tenant.getId(), from, to)
+        .stream()
+        .map(payment -> modelMapper.map(payment, PaymentResponse.class))
+        .collect(Collectors.toList());
   }
 }

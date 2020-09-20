@@ -1,6 +1,7 @@
 package org.chenliang.freepark.controller.user;
 
 import org.chenliang.freepark.exception.PaymentErrorException;
+import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.service.PaymentService;
@@ -10,6 +11,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 public class PaymentController {
@@ -27,8 +30,7 @@ public class PaymentController {
   }
 
   @GetMapping("/payments/today")
-  public ResponseEntity<Void> getPaymentsOfToday() {
-    // implement detail
-    return ResponseEntity.ok().build();
+  public List<PaymentResponse> getPaymentsOfToday(@AuthenticationPrincipal Tenant tenant) {
+    return paymentService.getTodayPayments(tenant);
   }
 }
