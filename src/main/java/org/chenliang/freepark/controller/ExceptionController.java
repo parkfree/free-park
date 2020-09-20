@@ -32,7 +32,7 @@ public class ExceptionController {
 
   @ExceptionHandler(value = PaymentErrorException.class)
   public ResponseEntity<ErrorResponse> paymentExceptionHandler(PaymentErrorException e) {
-    return response(BAD_REQUEST, ErrorCodes.PAYMENT_ERROR, e.getPayStatus().toString());
+    return response(BAD_REQUEST, ErrorCodes.PAYMENT_ERROR, e.getPaymentStatus().toString());
   }
 
   @ExceptionHandler(value = InvalidRequestException.class)

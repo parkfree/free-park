@@ -2,7 +2,7 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.PayHistory;
-import org.chenliang.freepark.model.PayStatus;
+import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.PayTask;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
@@ -80,12 +80,12 @@ public class PayTaskManager {
   }
 
   private void pay(Tenant tenant) {
-    PayStatus payStatus = paymentService.pay(tenant);
-    updatePayTaskStatus(tenant, payStatus);
+    PaymentStatus paymentStatus = paymentService.pay(tenant);
+    updatePayTaskStatus(tenant, paymentStatus);
 
-    if (payStatus == PayStatus.CAR_NOT_FOUND || payStatus == PayStatus.NO_AVAILABLE_MEMBER) {
+    if (paymentStatus == PaymentStatus.CAR_NOT_FOUND || paymentStatus == PaymentStatus.NO_AVAILABLE_MEMBER) {
       cancelPayTask(tenant);
-    } else if (payStatus == PayStatus.SUCCESS) {
+    } else if (paymentStatus == PaymentStatus.SUCCESS) {
       if (memberRepository.findFirstByLastPaidAtBeforeAndTenant(LocalDate.now(), tenant) == null) {
         log.warn("All members for car {} are used, cancel the pay schedule task", tenant.getCarNumber());
         cancelPayTask(tenant);
@@ -93,12 +93,12 @@ public class PayTaskManager {
     }
   }
 
-  private void updatePayTaskStatus(Tenant tenant, PayStatus payStatus) {
+  private void updatePayTaskStatus(Tenant tenant, PaymentStatus paymentStatus) {
     PayTask payTask = payTasks.get(tenant.getId());
     LocalDateTime now = LocalDateTime.now();
     PayHistory history = PayHistory.builder()
         .paidAt(now)
-        .payStatus(payStatus)
+        .paymentStatus(paymentStatus)
         .build();
     payTask.setLastPaidAt(now);
     payTask.getPayHistories().add(history);

@@ -1,15 +1,15 @@
 package org.chenliang.freepark.exception;
 
-import org.chenliang.freepark.model.PayStatus;
+import org.chenliang.freepark.model.PaymentStatus;
 
 public class PaymentErrorException extends RuntimeException {
-  private PayStatus payStatus;
+  private final PaymentStatus paymentStatus;
 
-  public PaymentErrorException(PayStatus payStatus) {
-    this.payStatus = payStatus;
+  public PaymentErrorException(PaymentStatus paymentStatus) {
+    this.paymentStatus = paymentStatus;
   }
 
-  public PayStatus getPayStatus() {
-    return payStatus;
+  public PaymentStatus getPaymentStatus() {
+    return paymentStatus;
   }
 }

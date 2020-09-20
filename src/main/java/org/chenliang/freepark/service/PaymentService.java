@@ -3,7 +3,7 @@ package org.chenliang.freepark.service;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
-import org.chenliang.freepark.model.PayStatus;
+import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.rtmap.Status;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
@@ -21,30 +21,30 @@ public class PaymentService {
   @Autowired
   private MemberRepository memberRepository;
 
-  public PayStatus pay(Tenant tenant) {
+  public PaymentStatus pay(Tenant tenant) {
     LocalDate today = LocalDate.now();
     log.info("Start to pay car {}", tenant.getCarNumber());
     Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task", tenant.getCarNumber());
-      return PayStatus.NO_AVAILABLE_MEMBER;
+      return PaymentStatus.NO_AVAILABLE_MEMBER;
     }
 
     ParkDetail parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
 
     if (parkDetail.getCode() == 400) {
       log.warn("Car {} is not found when paying", tenant.getCarNumber());
-      return PayStatus.CAR_NOT_FOUND;
+      return PaymentStatus.CAR_NOT_FOUND;
     } else if (parkDetail.getCode() != 200) {
       log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(), parkDetail.getMsg());
-      return PayStatus.PARK_DETAIL_API_ERROR;
+      return PaymentStatus.PARK_DETAIL_API_ERROR;
     }
 
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
 
     if (parkingFee.getReceivable() == 0) {
       log.info("Car {} is already paid", tenant.getCarNumber());
-      return PayStatus.ALREADY_PAID;
+      return PaymentStatus.NO_NEED_TO_PAY;
     }
 
     if (parkingFee.getMemberDeductible() == 0) {
@@ -57,7 +57,7 @@ public class PaymentService {
     if (parkingFee.getFeeNumber() != 0) {
       // TODO: notify owner
       log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
-      return PayStatus.NEED_WECHAT_PAY;
+      return PaymentStatus.NEED_WECHAT_PAY;
     }
 
     Status status = rtmapService.pay(member, parkDetail);
@@ -66,10 +66,10 @@ public class PaymentService {
       member.setLastPaidAt(today);
       memberRepository.save(member);
       log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
-      return PayStatus.SUCCESS;
+      return PaymentStatus.SUCCESS;
     } else {
       log.error("Pay car {} with member {} get error response: {}", tenant.getCarNumber(), member.getMobile(), status);
-      return PayStatus.PAY_API_ERROR;
+      return PaymentStatus.PAY_API_ERROR;
     }
   }
 }

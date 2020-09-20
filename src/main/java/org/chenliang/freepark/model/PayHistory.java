@@ -9,5 +9,5 @@ import java.time.LocalDateTime;
 @Builder
 public class PayHistory {
   private LocalDateTime paidAt;
-  private PayStatus payStatus;
+  private PaymentStatus paymentStatus;
 }
