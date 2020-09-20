@@ -2,6 +2,7 @@ package org.chenliang.freepark.service;
 
 import org.chenliang.freepark.exception.InvalidRequestException;
 import org.chenliang.freepark.exception.TokenAuthenticationException;
+import org.chenliang.freepark.model.CreateTenantRequest;
 import org.chenliang.freepark.model.LoginRequest;
 import org.chenliang.freepark.model.TokenResponse;
 import org.chenliang.freepark.model.entity.AccessToken;
@@ -9,30 +10,40 @@ import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.AccessTokenRepository;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Optional;
 
 @Service
-public class TokenService {
+public class AuthService {
   public static final String TOKEN_PREFIX = "Bearer ";
-  public static final int TOKEN_EXPIRE_IN = 1296000; // 15 days
+  public static final Duration TOKEN_EXPIRE_IN = Duration.ofDays(15); // 15 days
 
   private static final SecureRandom secureRandom = new SecureRandom();
   private static final Base64.Encoder base64Encoder = Base64.getUrlEncoder();
+
+  @Value("${invite-code}")
+  private String defaultInviteCode;
 
   @Autowired
   private AccessTokenRepository accessTokenRepository;
 
   @Autowired
   private TenantRepository tenantRepository;
+
+  @Autowired
+  private TenantService tenantService;
 
   @Autowired
   private BCryptPasswordEncoder passwordEncoder;
@@ -54,6 +65,13 @@ public class TokenService {
         .map(AccessToken::getTenant);
   }
 
+  @Transactional
+  public TokenResponse register(@RequestBody @Valid CreateTenantRequest request) {
+    validateInviteCode(request.getInviteCode());
+    Tenant tenant = tenantService.createTenant(request);
+    return createToken(tenant);
+  }
+
   public TokenResponse login(LoginRequest request) {
     String email = request.getEmail();
     Tenant tenant = tenantRepository.findByEmail(email)
@@ -65,18 +83,18 @@ public class TokenService {
     }
   }
 
-  public TokenResponse createToken(Tenant tenant) {
+  private TokenResponse createToken(Tenant tenant) {
     String tokenString = randomToken();
 
     AccessToken accessToken = new AccessToken();
     accessToken.setToken(tokenString);
-    accessToken.setExpireAt(LocalDateTime.now().plusSeconds(TOKEN_EXPIRE_IN));
+    accessToken.setExpireAt(LocalDateTime.now().plus(TOKEN_EXPIRE_IN));
     accessToken.setTenant(tenant);
     accessTokenRepository.save(accessToken);
 
     return TokenResponse.builder()
         .accessToken(tokenString)
-        .expireIn(TOKEN_EXPIRE_IN)
+        .expireIn((int) TOKEN_EXPIRE_IN.toSeconds())
         .build();
   }
 
@@ -84,5 +102,11 @@ public class TokenService {
     byte[] randomBytes = new byte[48];
     secureRandom.nextBytes(randomBytes);
     return base64Encoder.encodeToString(randomBytes);
+  }
+
+  private void validateInviteCode(String inviteCode) {
+    if (!defaultInviteCode.equals(inviteCode)) {
+      throw new InvalidRequestException("Invalid invite code");
+    }
   }
 }
