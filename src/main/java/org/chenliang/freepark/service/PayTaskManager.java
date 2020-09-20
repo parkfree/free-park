@@ -1,7 +1,6 @@
 package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
-import org.chenliang.freepark.model.PayHistory;
 import org.chenliang.freepark.model.PayTask;
 import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentStatus;
@@ -50,8 +49,9 @@ public class PayTaskManager {
         .tenantId(tenant.getId())
         .parkAt(parkAtTime)
         .createAt(LocalDateTime.now())
-        .initDelay((int) initDelay.toMinutes())
-        .period((int) PAY_PERIOD.toMinutes())
+        .initDelayMinutes((int) initDelay.toMinutes())
+        .periodMinutes((int) PAY_PERIOD.toMinutes())
+        .nextScheduledAt(LocalDateTime.now().plus(initDelay))
         .build();
     payTasks.put(tenant.getId(), payTask);
 
@@ -82,7 +82,7 @@ public class PayTaskManager {
 
   private void pay(Tenant tenant) {
     PaymentResponse paymentResponse = paymentService.pay(tenant);
-    updatePayTaskStatus(tenant, paymentResponse);
+    updatePayTaskStatus(tenant);
 
     PaymentStatus paymentStatus = paymentResponse.getStatus();
     if (paymentStatus == PaymentStatus.CAR_NOT_FOUND || paymentStatus == PaymentStatus.NO_AVAILABLE_MEMBER) {
@@ -95,15 +95,11 @@ public class PayTaskManager {
     }
   }
 
-  private void updatePayTaskStatus(Tenant tenant, PaymentResponse paymentResponse) {
+  private void updatePayTaskStatus(Tenant tenant) {
     PayTask payTask = payTasks.get(tenant.getId());
     LocalDateTime now = LocalDateTime.now();
-    PayHistory history = PayHistory.builder()
-        .paidAt(now)
-        .paymentStatus(paymentResponse.getStatus())
-        .build();
-    payTask.setLastPaidAt(now);
-    payTask.getPayHistories().add(history);
+    payTask.setLastScheduledAt(now);
+    payTask.setNextScheduledAt(now.plus(PAY_PERIOD));
   }
 
   private Duration calculateInitPayDelay(Integer parkTime) {
