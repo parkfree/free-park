@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin")
-public class MemberAdminController {
+public class AdminMemberController {
   @Autowired
   private MemberRepository memberRepository;
 
