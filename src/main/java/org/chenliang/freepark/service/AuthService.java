@@ -4,6 +4,7 @@ import org.chenliang.freepark.exception.InvalidRequestException;
 import org.chenliang.freepark.exception.TokenAuthenticationException;
 import org.chenliang.freepark.model.CreateTenantRequest;
 import org.chenliang.freepark.model.LoginRequest;
+import org.chenliang.freepark.model.ResetPasswordRequest;
 import org.chenliang.freepark.model.TokenResponse;
 import org.chenliang.freepark.model.entity.AccessToken;
 import org.chenliang.freepark.model.entity.Tenant;
@@ -108,5 +109,13 @@ public class AuthService {
     if (!defaultInviteCode.equals(inviteCode)) {
       throw new InvalidRequestException("Invalid invite code");
     }
+  }
+
+  public void resetPassword(ResetPasswordRequest request, Tenant tenant) {
+    if (!passwordEncoder.matches(request.getOldPassword(), tenant.getPassword())) {
+      throw new InvalidRequestException("Invalid old password");
+    }
+    tenant.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    tenantRepository.save(tenant);
   }
 }
