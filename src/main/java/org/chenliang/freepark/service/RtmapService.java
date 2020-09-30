@@ -1,24 +1,23 @@
 package org.chenliang.freepark.service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.UUID;
+
 import org.chenliang.freepark.configuration.FreeParkConfig;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Payment;
 import org.chenliang.freepark.model.rtmap.PointDto;
 import org.chenliang.freepark.model.rtmap.Status;
-import org.chenliang.freepark.model.entity.Tenant;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.UUID;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
@@ -65,12 +64,12 @@ public class RtmapService {
     return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
   }
 
-  public void signIn(Member member, Tenant tenant) {
+  public void signIn(Member member) {
     final PointDto param = PointDto.builder()
         .openid(member.getOpenId())
         .channelId(1001)
         .marketId("12964")
-        .cardNo(tenant.getCarNumber())
+        .cardNo(member.getUserId())
         .mobile(member.getMobile())
         .build();
     final String jsonString = JSONObject.toJSONString(param);

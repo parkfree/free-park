@@ -1,12 +1,20 @@
 package org.chenliang.freepark.model.entity;
 
-import lombok.Data;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+import javax.persistence.PrePersist;
+import javax.persistence.Table;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import javax.persistence.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.Data;
 
 @Data
 @Entity
@@ -20,6 +28,7 @@ public class Member {
   private String openId;
   private String memType;
   private String mobile;
+  private Boolean enableSignIn;
   private LocalDate lastPaidAt;
   @CreationTimestamp
   private LocalDateTime createdAt;

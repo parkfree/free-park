@@ -17,6 +17,7 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
   List<Member> findByTenantId(Integer tenantId);
   Optional<Member> findFirstByIdAndTenantId(Integer id, Integer tenantId);
   boolean existsByIdAndTenantId(Integer id, Integer tenantId);
+  List<Member> findByEnableSignInIsTrue();
 
   @Modifying
   @Query("delete from Member m where m.tenant.id = ?1")
