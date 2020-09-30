@@ -19,9 +19,9 @@ public class SignInTaskManager {
   @Autowired
   private ScheduledExecutorService scheduledExecutorService;
 
-  public void scheduleSignInTask(Member member) {
+  public void schedulePointTask(Member member) {
     Random random = new Random();
-    int i = random.nextInt(20);
-    scheduledExecutorService.schedule(() -> rtmapService.signIn(member), i, TimeUnit.SECONDS);
+    int i = random.nextInt(3600);
+    scheduledExecutorService.schedule(() -> rtmapService.getPoint(member), i, TimeUnit.SECONDS);
   }
 }

@@ -35,6 +35,7 @@ public class CheckAtStart implements CommandLineRunner {
   @Override
   public void run(String... args) throws Exception {
     scheduledCheck();
+    schedulePointTask();
   }
 
   @Scheduled(cron = "${check-cron}")
@@ -46,8 +47,8 @@ public class CheckAtStart implements CommandLineRunner {
   }
 
   @Scheduled(cron = "0 0 9 * * ?")
-  public void scheduleSignInTask(){
-    final List<Member> members = memberRepository.findByEnableSignInIsTrue();
-    members.forEach(m -> signInTaskManager.scheduleSignInTask(m));
+  public void schedulePointTask(){
+    final List<Member> members = memberRepository.findByEnablePointIsTrue();
+    members.forEach(m -> signInTaskManager.schedulePointTask(m));
   }
 }

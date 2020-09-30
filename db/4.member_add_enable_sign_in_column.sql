@@ -1,1 +1,1 @@
-alter table members add enable_sign_in tinyint(1) default 0 null;
+alter table members add enable_point tinyint(1) default 0 null;

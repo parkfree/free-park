@@ -28,7 +28,7 @@ public class Member {
   private String openId;
   private String memType;
   private String mobile;
-  private Boolean enableSignIn;
+  private Boolean enablePoint;
   private LocalDate lastPaidAt;
   @CreationTimestamp
   private LocalDateTime createdAt;

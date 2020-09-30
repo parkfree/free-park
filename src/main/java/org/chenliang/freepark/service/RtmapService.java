@@ -64,7 +64,7 @@ public class RtmapService {
     return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
   }
 
-  public void signIn(Member member) {
+  public void getPoint(Member member) {
     final PointDto param = PointDto.builder()
         .openid(member.getOpenId())
         .channelId(1001)
