@@ -50,7 +50,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOrigins("*").allowedHeaders("*")
+            .allowedMethods("*")
+            .allowedOrigins("*")
+            .allowedHeaders("*")
             .maxAge(3600 * 24);
       }
     };
