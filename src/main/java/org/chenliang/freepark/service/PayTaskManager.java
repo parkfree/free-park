@@ -48,7 +48,7 @@ public class PayTaskManager {
     PayTask payTask = PayTask.builder()
         .tenantId(tenant.getId())
         .parkAt(parkAtTime)
-        .createAt(LocalDateTime.now())
+        .createdAt(LocalDateTime.now())
         .initDelayMinutes((int) initDelay.toMinutes())
         .periodMinutes((int) PAY_PERIOD.toMinutes())
         .nextScheduledAt(LocalDateTime.now().plus(initDelay))
