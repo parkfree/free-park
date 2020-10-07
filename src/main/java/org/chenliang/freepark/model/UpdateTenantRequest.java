@@ -20,6 +20,6 @@ public class UpdateTenantRequest {
 
   private String password;
 
-  @Pattern(regexp = "ROLE_(AMDMIN|USER)")
+  @Pattern(regexp = "ROLE_(ADMIN|USER)")
   private String role;
 }
