@@ -10,6 +10,7 @@ import org.chenliang.freepark.service.TenantService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,13 +43,13 @@ public class AdminTenantController {
   }
 
   @PostMapping("/tenants")
-  public TenantResponse createTenant(@RequestBody CreateTenantRequest request) {
+  public TenantResponse createTenant(@RequestBody @Validated CreateTenantRequest request) {
     Tenant tenant = tenantService.createTenant(request);
     return modelMapper.map(tenant, TenantResponse.class);
   }
 
   @PutMapping("/tenants/{id}")
-  public TenantResponse updateTenant(@PathVariable Integer id, @RequestBody UpdateTenantRequest request) {
+  public TenantResponse updateTenant(@PathVariable Integer id, @RequestBody @Validated UpdateTenantRequest request) {
     Tenant tenant = tenantService.adminUpdateTenant(id, request);
     return modelMapper.map(tenant, TenantResponse.class);
   }

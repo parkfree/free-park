@@ -10,6 +10,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,12 +42,12 @@ public class MemberController {
   }
 
   @PostMapping("/members")
-  public MemberResponse createMember(@RequestBody MemberRequest request, @AuthenticationPrincipal Tenant tenant) {
+  public MemberResponse createMember(@RequestBody @Validated MemberRequest request, @AuthenticationPrincipal Tenant tenant) {
     return memberService.createMember(request, tenant);
   }
 
   @PutMapping("/members/{id}")
-  public MemberResponse updateMember(@PathVariable Integer id, @RequestBody MemberRequest request,
+  public MemberResponse updateMember(@PathVariable Integer id, @RequestBody @Validated MemberRequest request,
                                      @AuthenticationPrincipal Tenant tenant) {
     return memberService.updateMember(id, request, tenant);
   }

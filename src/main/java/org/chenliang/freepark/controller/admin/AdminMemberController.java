@@ -10,6 +10,7 @@ import org.chenliang.freepark.service.MemberService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,7 +46,7 @@ public class AdminMemberController {
   }
 
   @PostMapping("/tenants/{id}/members")
-  public MemberResponse createMember(@PathVariable Integer id, @RequestBody MemberRequest request) {
+  public MemberResponse createMember(@PathVariable Integer id, @RequestBody @Validated MemberRequest request) {
     Tenant tenant = tenantRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
     return memberService.createMember(request, tenant);
@@ -53,7 +54,7 @@ public class AdminMemberController {
 
   @PutMapping("/tenants/{tenantId}/members/{memberId}")
   public MemberResponse updateMember(@PathVariable Integer tenantId, @PathVariable Integer memberId,
-                                     @RequestBody MemberRequest request) {
+                                     @RequestBody @Validated MemberRequest request) {
     Tenant tenant = tenantRepository.findById(tenantId)
         .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
     return memberService.updateMember(memberId, request, tenant);

@@ -7,6 +7,7 @@ import org.chenliang.freepark.service.TenantService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,7 +27,7 @@ public class TenantController {
   }
 
   @PutMapping("/tenant")
-  public TenantResponse updateTenant(@AuthenticationPrincipal Tenant tenant, @RequestBody UpdateTenantRequest request) {
+  public TenantResponse updateTenant(@AuthenticationPrincipal Tenant tenant, @RequestBody @Validated UpdateTenantRequest request) {
     Tenant updatedTenant = tenantService.updateCurrentLoginTenant(tenant, request);
     return modelMapper.map(updatedTenant, TenantResponse.class);
   }
