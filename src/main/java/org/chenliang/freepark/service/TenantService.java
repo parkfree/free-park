@@ -57,9 +57,6 @@ public class TenantService {
     tenant.setCarNumber(request.getCarNumber());
     tenant.setOwner(request.getOwner());
     tenant.setEmail(request.getEmail());
-    if (Strings.isNotBlank(request.getPassword())) {
-      tenant.setPassword(passwordEncoder.encode(request.getPassword()));
-    }
     return tenantRepository.save(tenant);
   }
 
