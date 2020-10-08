@@ -34,7 +34,7 @@ mysql -h 127.0.0.1 -u root -p freepark.sql < schema.sql
 Generate the DDL from existing MySQL database
 
 ```
-mysqldump --host=127.0.0.1 --port=43306 -u root -p freepark --no-data --databases --skip-add-drop-table --skip-comments  > schema.sql
+mysqldump --host=127.0.0.1 --port=43306 -u root -p freepark --no-data --databases --skip-add-drop-table --skip-comments | sed 's/ AUTO_INCREMENT=[0-9]*//g'  > schema.sql
 ```
 
 ## Deploy
