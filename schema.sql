@@ -24,7 +24,7 @@ CREATE TABLE `access_tokens` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `token` (`token`),
   KEY `tenant_id` (`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -44,7 +44,7 @@ CREATE TABLE `members` (
   PRIMARY KEY (`id`),
   KEY `tenant_id` (`tenant_id`),
   KEY `last_paid_at` (`last_paid_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -62,7 +62,7 @@ CREATE TABLE `payments` (
   KEY `tenant_id` (`tenant_id`),
   KEY `member_id` (`member_id`),
   KEY `paid_at` (`paid_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -71,6 +71,7 @@ CREATE TABLE `tenants` (
   `car_number` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `owner` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `total_paid_amount` int NOT NULL DEFAULT '0',
   `role` varchar(15) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ROLE_USER',
   `password` varchar(70) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -78,7 +79,7 @@ CREATE TABLE `tenants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `car_number` (`car_number`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
