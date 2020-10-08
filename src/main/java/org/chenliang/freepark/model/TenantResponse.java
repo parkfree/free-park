@@ -12,6 +12,7 @@ public class TenantResponse {
   private String owner;
   private String email;
   private String role;
+  private int totalPaidAmount;
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime createdAt;
 }

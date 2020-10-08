@@ -10,6 +10,7 @@ import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Status;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.repository.PaymentRepository;
+import org.chenliang.freepark.repository.TenantRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,9 @@ public class PaymentService {
 
   @Autowired
   private PaymentRepository paymentRepository;
+
+  @Autowired
+  private TenantRepository tenantRepository;
 
   @Autowired
   private ModelMapper modelMapper;
@@ -95,12 +99,18 @@ public class PaymentService {
       member.setLastPaidAt(today);
       memberRepository.save(member);
       log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
+      updateTenantTotalAmount(tenant, payment);
       return createResponse(payment, PaymentStatus.SUCCESS);
     } else {
       log.error("Pay car {} with member {} get error response: {}", tenant.getCarNumber(), member.getMobile(), status);
       payment.setStatus(PaymentStatus.PAY_API_ERROR);
       return createResponse(payment, PaymentStatus.PAY_API_ERROR, status.getMsg());
     }
+  }
+
+  private void updateTenantTotalAmount(Tenant tenant, Payment payment) {
+    tenant.setTotalPaidAmount(tenant.getTotalPaidAmount() + payment.getAmount());
+    tenantRepository.save(tenant);
   }
 
   private PaymentResponse createResponse(Payment payment, PaymentStatus status) {

@@ -25,6 +25,7 @@ public class Tenant {
   private String owner;
   private String password;
   private String role;
+  private int totalPaidAmount;
 
   @CreationTimestamp
   private LocalDateTime createdAt;
