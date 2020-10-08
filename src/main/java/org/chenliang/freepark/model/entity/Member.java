@@ -29,8 +29,8 @@ public class Member {
   private String memType;
   private String mobile;
   private String name;
-  private Boolean enablePay;
-  private Boolean enablePoint;
+  private boolean enablePay;
+  private boolean enablePoint;
   private LocalDate lastPaidAt;
   @CreationTimestamp
   private LocalDateTime createdAt;

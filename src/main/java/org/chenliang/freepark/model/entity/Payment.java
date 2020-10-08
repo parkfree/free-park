@@ -27,7 +27,7 @@ public class Payment {
 
   private String comment;
 
-  private Integer amount;
+  private int amount;
 
   private LocalDateTime paidAt;
 
