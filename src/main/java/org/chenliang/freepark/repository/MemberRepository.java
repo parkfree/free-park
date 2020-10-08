@@ -13,7 +13,12 @@ import java.util.Optional;
 
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Integer> {
-  Member findFirstByLastPaidAtBeforeAndTenant(LocalDate date, Tenant tenant);
+  default Member findFirstPayableMember(LocalDate date, Tenant tenant) {
+    return findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenant(date, tenant);
+  }
+
+  Member findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenant(LocalDate date, Tenant tenant);
+
   List<Member> findByTenantId(Integer tenantId);
   Optional<Member> findFirstByIdAndTenantId(Integer id, Integer tenantId);
   boolean existsByIdAndTenantId(Integer id, Integer tenantId);

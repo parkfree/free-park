@@ -80,7 +80,7 @@ public class CheckTaskManager {
     log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkTasks.get(tenant.getId()).getCheckCount());
 
     LocalDate today = LocalDate.now();
-    Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
+    Member member = memberRepository.findFirstPayableMember(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the check schedule task.", tenant.getCarNumber());
       cancelCheckTask(tenant);

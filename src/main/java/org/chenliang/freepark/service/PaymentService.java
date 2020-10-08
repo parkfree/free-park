@@ -49,7 +49,7 @@ public class PaymentService {
 
     LocalDate today = LocalDate.now();
     log.info("Start to pay car {}", tenant.getCarNumber());
-    Member member = memberRepository.findFirstByLastPaidAtBeforeAndTenant(today, tenant);
+    Member member = memberRepository.findFirstPayableMember(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task", tenant.getCarNumber());
       return createResponse(payment, PaymentStatus.NO_AVAILABLE_MEMBER);
