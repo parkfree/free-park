@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class PointDto {
+public class PointRequest {
   private String openid;
   private String marketId;
   private String cardNo;

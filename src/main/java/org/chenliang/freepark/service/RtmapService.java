@@ -1,16 +1,11 @@
 package org.chenliang.freepark.service;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.UUID;
-
+import lombok.extern.slf4j.Slf4j;
 import org.chenliang.freepark.configuration.FreeParkConfig;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Payment;
-import org.chenliang.freepark.model.rtmap.PointDto;
+import org.chenliang.freepark.model.rtmap.PointRequest;
 import org.chenliang.freepark.model.rtmap.Status;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,8 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.alibaba.fastjson.JSONObject;
-import lombok.extern.slf4j.Slf4j;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -38,8 +32,8 @@ public class RtmapService {
     HttpEntity<Void> request = new HttpEntity<>(httpHeaders);
 
     ResponseEntity<ParkDetail> response = client.exchange(config.getUris().get("parkDetail"), HttpMethod.GET, request,
-                                                          ParkDetail.class, config.getWxAppId(), member.getOpenId(),
-                                                          carNumber, member.getUserId(), member.getMemType());
+        ParkDetail.class, config.getWxAppId(), member.getOpenId(),
+        carNumber, member.getUserId(), member.getMemType());
     return response.getBody();
   }
 
@@ -65,27 +59,24 @@ public class RtmapService {
   }
 
   public void getPoint(Member member) {
-    final PointDto param = PointDto.builder()
+    final PointRequest pointRequest = PointRequest.builder()
         .openid(member.getOpenId())
         .channelId(1001)
         .marketId("12964")
         .cardNo(member.getUserId())
         .mobile(member.getMobile())
         .build();
-    final String jsonString = JSONObject.toJSONString(param);
 
-    HttpClient client = HttpClient.newHttpClient();
-    HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create("https://appsmall.rtmap.com/sign/signRecord"))
-        .header("Content-Type", "application/json")
-        .POST(HttpRequest.BodyPublishers.ofString(jsonString))
-        .build();
+    HttpEntity<PointRequest> request = new HttpEntity<>(pointRequest, createHeaders(member));
+
     try {
-      HttpResponse<String> response = client.send(request,
-          HttpResponse.BodyHandlers.ofString());
-      log.info("Sign in response : {}", response.body());
+      Status status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
+      if (status.getCode() == 200) {
+        log.info("Check in point success for member {}", member.getMobile());
+      }
+      log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(), status.getCode(), status.getMsg());
     } catch (Exception e) {
-      log.error("Sign in error", e);
+      log.error("Check in point request API error for member {}", member.getMobile(), e);
     }
   }
 
@@ -99,7 +90,7 @@ public class RtmapService {
     long timestamp = System.currentTimeMillis();
 
     return String.format("consumer=188880000002&timestamp=%d&nonce=%s&sign=%s&tenantId=12964&cid=%s&openId=%s&v=20200704",
-                         timestamp, randomHexHash(), randomHexHash(), userId, openId);
+        timestamp, randomHexHash(), randomHexHash(), userId, openId);
   }
 
   private String randomHexHash() {

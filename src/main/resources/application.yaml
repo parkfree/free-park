@@ -7,6 +7,7 @@ freepark:
   uris:
     parkDetail: "/app-park/parkingFee/getDetailByCarNumber?wxAppId={wxAppId}&openid={openid}&carNumber={carNumber}&userId={userId}&memType={memType}"
     pay: "/app-park/payParkingFee"
+    checkInPoint: "/sign/signRecord"
   timeout:
     connect: 1000
     read: 5000
