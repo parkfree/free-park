@@ -1,1 +1,4 @@
-alter table members add enable_point tinyint(1) default 0 null;
+ALTER TABLE `members`
+    ADD COLUMN enable_point BOOLEAN NOT NULL DEFAULT FALSE AFTER mobile,
+    ADD COLUMN enable_pay BOOLEAN NOT NULL DEFAULT TRUE AFTER mobile,
+    ADD COLUMN name VARCHAR(20) NOT NULL DEFAULT '' AFTER mobile;

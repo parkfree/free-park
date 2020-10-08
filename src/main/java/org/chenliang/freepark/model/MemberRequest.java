@@ -21,4 +21,12 @@ public class MemberRequest {
   @NotBlank
   @Size(min = 11, max = 11)
   private String mobile;
+
+  @NotBlank
+  @Size(max = 20)
+  private String name;
+
+  private boolean enablePay;
+
+  private boolean enablePoint;
 }

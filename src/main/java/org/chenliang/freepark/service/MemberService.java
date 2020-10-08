@@ -38,5 +38,8 @@ public class MemberService {
     member.setMobile(memberRequest.getMobile());
     member.setOpenId(memberRequest.getOpenId());
     member.setUserId(memberRequest.getUserId());
+    member.setName(memberRequest.getName());
+    member.setEnablePay(memberRequest.isEnablePay());
+    member.setEnablePoint(memberRequest.isEnablePoint());
   }
 }

@@ -12,5 +12,8 @@ public class MemberResponse {
   private String openId;
   private String memType;
   private String mobile;
+  private String name;
+  private Boolean enablePay;
+  private Boolean enablePoint;
   private LocalDate lastPaidAt;
 }
