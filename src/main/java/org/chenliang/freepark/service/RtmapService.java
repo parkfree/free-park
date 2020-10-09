@@ -73,7 +73,7 @@ public class RtmapService {
       Status status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
       if (status.getCode() == 200) {
         log.info("Check in point success for member {}", member.getMobile());
-      }else{
+      } else {
         log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(), status.getCode(), status.getMsg());
       }
     } catch (Exception e) {

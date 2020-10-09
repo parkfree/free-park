@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.time.*;
+import java.time.Instant;
 import java.util.List;
 import java.util.Random;
 
@@ -31,8 +31,10 @@ public class PointTaskScheduler {
     Instant now = Instant.now();
     Random random = new Random();
     members.forEach(member -> {
-      int delaySeconds = random.nextInt(3600 * 12);
-      taskScheduler.schedule(() -> rtmapService.getPoint(member), now.plusSeconds(delaySeconds));
+      int delaySeconds = random.nextInt(3600 * 9);
+      Instant startTime = now.plusSeconds(delaySeconds);
+      log.info("Scheduled member {} to get checkin point at {}", member.getMobile(), startTime.toString());
+      taskScheduler.schedule(() -> rtmapService.getPoint(member), startTime);
     });
   }
 }
