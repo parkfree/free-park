@@ -5,7 +5,6 @@ plugins {
 }
 
 group = 'org.chenliang'
-version = '2.0.1'
 sourceCompatibility = '11'
 
 configurations {
