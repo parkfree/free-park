@@ -30,7 +30,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: ./build/libs/${{ env.APP_NAME }}-${{ env.VERSION }}.jar
           asset_name: ${{ env.APP_NAME }}-${{ env.VERSION }}.jar
           asset_content_type: application/octet-stream
