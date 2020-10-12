@@ -25,7 +25,7 @@ public class AdminCheckTaskController {
   @PostMapping("/tenants/{id}/checktask")
   public CheckTask createCheckTask(@PathVariable Integer id) {
     return tenantRepository.findById(id).map(tenant -> {
-      checkTaskManager.scheduleCheckTask(tenant);
+      checkTaskManager.scheduleCheckTask(tenant, 0);
       return checkTaskManager.getTask(tenant);
     }).orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
   }

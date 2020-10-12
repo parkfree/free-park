@@ -16,17 +16,19 @@ public class CheckTask {
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime createdAt;
 
+  private Integer initDelaySeconds;
+
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime lastScheduledAt;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime nextScheduledAt;
 
+  private Integer periodMinutes;
+
   private Integer checkCount;
 
   private Integer checkCountLimit;
-
-  private Integer periodMinutes;
 
   @JsonIgnore
   private ScheduledFuture<?> future;

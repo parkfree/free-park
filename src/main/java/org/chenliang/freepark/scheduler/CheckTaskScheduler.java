@@ -10,10 +10,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Random;
 
 @Component
 @Log4j2
 public class CheckTaskScheduler implements CommandLineRunner {
+  public static final int MAX_INIT_DELAY_SECONDS = 1200; // within 20 minutes
+
   @Autowired
   private TenantRepository tenantRepository;
 
@@ -28,8 +31,10 @@ public class CheckTaskScheduler implements CommandLineRunner {
   @Scheduled(cron = "${check-cron}")
   public void scheduledCheck() {
     List<Tenant> tenants = tenantRepository.findAll();
+    Random random = new Random();
     for (Tenant tenant : tenants) {
-      checkTaskManager.scheduleCheckTask(tenant);
+      int initDelaySeconds = random.nextInt(MAX_INIT_DELAY_SECONDS);
+      checkTaskManager.scheduleCheckTask(tenant, initDelaySeconds);
     }
   }
 }

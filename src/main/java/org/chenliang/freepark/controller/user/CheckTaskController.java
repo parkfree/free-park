@@ -21,7 +21,7 @@ public class CheckTaskController {
 
   @PostMapping("/checktask")
   public CheckTask createCheckTask(@AuthenticationPrincipal Tenant tenant) {
-    checkTaskManager.scheduleCheckTask(tenant);
+    checkTaskManager.scheduleCheckTask(tenant, 0);
     return checkTaskManager.getTask(tenant);
   }
 

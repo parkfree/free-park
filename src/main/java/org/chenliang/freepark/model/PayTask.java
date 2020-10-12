@@ -14,12 +14,9 @@ public class PayTask {
   private Integer tenantId;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-  private LocalDateTime parkAt;
-
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime createdAt;
 
-  private Integer initDelayMinutes;
+  private Integer initDelaySeconds;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime lastScheduledAt;
@@ -28,6 +25,9 @@ public class PayTask {
   private LocalDateTime nextScheduledAt;
 
   private Integer periodMinutes;
+
+  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+  private LocalDateTime parkAt;
 
   @JsonIgnore
   private ScheduledFuture<?> future;

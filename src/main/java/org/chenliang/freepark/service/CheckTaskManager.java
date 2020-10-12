@@ -3,8 +3,8 @@ package org.chenliang.freepark.service;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.CheckTask;
 import org.chenliang.freepark.model.entity.Member;
-import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.entity.Tenant;
+import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -36,7 +36,7 @@ public class CheckTaskManager {
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
 
-  public void scheduleCheckTask(Tenant tenant) {
+  public void scheduleCheckTask(Tenant tenant, int initDelaySeconds) {
     if (checkTasks.get(tenant.getId()) != null) {
       log.info("The check task for car {} is already scheduled", tenant.getCarNumber());
       return;
@@ -45,6 +45,7 @@ public class CheckTaskManager {
     CheckTask checkTask = CheckTask.builder()
         .tenantId(tenant.getId())
         .createdAt(LocalDateTime.now())
+        .initDelaySeconds(initDelaySeconds)
         .checkCount(0)
         .checkCountLimit(MAX_CHECK_COUNT)
         .nextScheduledAt(LocalDateTime.now())
@@ -53,9 +54,9 @@ public class CheckTaskManager {
 
     checkTasks.put(tenant.getId(), checkTask);
 
-    ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
-      check(tenant);
-    }, CHECK_PERIOD);
+    ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> check(tenant),
+        Instant.now().plusSeconds(initDelaySeconds),
+        CHECK_PERIOD);
 
     checkTask.setFuture(future);
   }
