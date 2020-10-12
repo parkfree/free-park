@@ -61,7 +61,13 @@ public class PaymentService {
 
     payment.setMember(member);
 
-    ParkDetail parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
+    ParkDetail parkDetail;
+    try {
+      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
+    } catch (Exception e) {
+      log.error("Call park detail API exception", e);
+      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误");
+    }
 
     if (parkDetail.getCode() == 400) {
       log.warn("Car {} is not found when paying", tenant.getCarNumber());
@@ -93,7 +99,13 @@ public class PaymentService {
       return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
     }
 
-    Status status = rtmapService.pay(member, parkDetail);
+    Status status;
+    try {
+      status = rtmapService.pay(member, parkDetail);
+    } catch (Exception e) {
+      log.error("Call pay API exception", e);
+      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用支付API错误");
+    }
 
     if (status.getCode() == 401) {
       member.setLastPaidAt(today);

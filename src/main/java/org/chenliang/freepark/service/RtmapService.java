@@ -1,6 +1,6 @@
 package org.chenliang.freepark.service;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.configuration.FreeParkConfig;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
@@ -11,13 +11,15 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
 
 @Service
-@Slf4j
+@Log4j2
 public class RtmapService {
   private final RestTemplate client;
   private final FreeParkConfig config;
@@ -27,6 +29,7 @@ public class RtmapService {
     this.config = config;
   }
 
+  @Retryable(value = RestClientException.class, maxAttempts = 2)
   public ParkDetail getParkDetail(Member member, String carNumber) {
     HttpHeaders httpHeaders = createHeaders(member);
     HttpEntity<Void> request = new HttpEntity<>(httpHeaders);
@@ -37,6 +40,7 @@ public class RtmapService {
     return response.getBody();
   }
 
+  @Retryable(value = RestClientException.class, maxAttempts = 2)
   public Status pay(Member member, ParkDetail parkDetail) {
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
     Payment payment = Payment.builder()
@@ -58,6 +62,7 @@ public class RtmapService {
     return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
   }
 
+  @Retryable(value = RestClientException.class, maxAttempts = 3)
   public void getPoint(Member member) {
     final PointRequest pointRequest = PointRequest.builder()
         .openid(member.getOpenId())

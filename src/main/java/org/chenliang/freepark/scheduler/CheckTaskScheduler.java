@@ -1,4 +1,4 @@
-package org.chenliang.freepark.command;
+package org.chenliang.freepark.scheduler;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.entity.Tenant;
