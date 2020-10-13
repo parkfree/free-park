@@ -23,7 +23,7 @@ public class AdminPaymentController {
   public PaymentResponse pay(@PathVariable Integer id) {
     Tenant tenant = tenantRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
-    return paymentService.pay(tenant);
+    return paymentService.pay(tenant.getId());
   }
 
   @GetMapping("/tenants/{id}/payments/today")

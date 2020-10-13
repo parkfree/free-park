@@ -81,7 +81,7 @@ public class PayTaskManager {
   }
 
   private void pay(Tenant tenant) {
-    PaymentResponse paymentResponse = paymentService.pay(tenant);
+    PaymentResponse paymentResponse = paymentService.pay(tenant.getId());
     updatePayTaskStatus(tenant);
 
     PaymentStatus paymentStatus = paymentResponse.getStatus();

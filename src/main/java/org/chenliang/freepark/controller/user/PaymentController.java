@@ -18,7 +18,7 @@ public class PaymentController {
 
   @PostMapping("/payments")
   public PaymentResponse pay(@AuthenticationPrincipal Tenant tenant) {
-    return paymentService.pay(tenant);
+    return paymentService.pay(tenant.getId());
   }
 
   @GetMapping("/payments/today")

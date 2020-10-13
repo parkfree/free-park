@@ -1,6 +1,7 @@
 package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
+import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.entity.Member;
@@ -40,14 +41,17 @@ public class PaymentService {
   private ModelMapper modelMapper;
 
   private static final Map<PaymentStatus, String> statusComment = Map.of(
-      PaymentStatus.SUCCESS, "支付成功",
-      PaymentStatus.NO_AVAILABLE_MEMBER, "没有可用的会员账号用于支付",
+      PaymentStatus.SUCCESS, "缴费成功",
+      PaymentStatus.NO_AVAILABLE_MEMBER, "没有可用的会员账号用于缴费",
       PaymentStatus.CAR_NOT_FOUND, "车辆不在停车场",
-      PaymentStatus.NO_NEED_TO_PAY, "当前时段已经支付过，不需要再支付",
-      PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工支付"
+      PaymentStatus.NO_NEED_TO_PAY, "当前时段已缴费，无须再缴费",
+      PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工缴费"
   );
 
-  public PaymentResponse pay(Tenant tenant) {
+  public PaymentResponse pay(int tenantId) {
+    Tenant tenant = tenantRepository.findById(tenantId)
+        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+
     Payment payment = new Payment();
     payment.setTenant(tenant);
 
@@ -88,7 +92,7 @@ public class PaymentService {
       log.info("Member {} doesn't has discount for today. Update its last paid date, and try to pay with new member", member.getMobile());
       member.setLastPaidAt(today);
       memberRepository.save(member);
-      return pay(tenant);
+      return pay(tenantId);
     }
 
     payment.setAmount(parkingFee.getReceivable());
@@ -104,7 +108,7 @@ public class PaymentService {
       status = rtmapService.pay(member, parkDetail);
     } catch (Exception e) {
       log.error("Call pay API exception", e);
-      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用支付API错误");
+      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
     }
 
     if (status.getCode() == 401) {
