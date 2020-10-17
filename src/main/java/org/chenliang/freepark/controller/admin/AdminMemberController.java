@@ -3,12 +3,15 @@ package org.chenliang.freepark.controller.admin;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.MemberRequest;
 import org.chenliang.freepark.model.MemberResponse;
+import org.chenliang.freepark.model.MemberWithTenantResponse;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.repository.TenantRepository;
 import org.chenliang.freepark.service.MemberService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +33,13 @@ public class AdminMemberController {
 
   @Autowired
   private ModelMapper modelMapper;
+
+  @GetMapping("/members")
+  public Page<MemberWithTenantResponse> getMembers(Pageable pageable) {
+    return memberRepository.findAll(pageable).map(member ->
+        modelMapper.map(member, MemberWithTenantResponse.class)
+    );
+  }
 
   @GetMapping("/members/{id}")
   public MemberResponse getMember(@PathVariable Integer id) {
