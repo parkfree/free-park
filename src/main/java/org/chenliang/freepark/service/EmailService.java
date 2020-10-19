@@ -32,7 +32,7 @@ public class EmailService {
 
   public void sendMail(String to) {
     String defaultSubject = "未缴费提醒";
-    String defaultContent = "请缴费";
+    String defaultContent = "请通过微信尽快手工缴费";
     sendMail(to, defaultSubject, defaultContent);
   }
 
