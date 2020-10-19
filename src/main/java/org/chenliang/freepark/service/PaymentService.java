@@ -102,7 +102,9 @@ public class PaymentService {
     payment.setAmount(parkingFee.getReceivable());
 
     if (parkingFee.getFeeNumber() != 0) {
-      emailService.sendMail(tenant.getEmail());
+      String subject = "需要微信手工缴费";
+      String content = String.format("请使用微信小程序手工缴费 %d 元。", parkingFee.getFeeNumber() / 100);
+      emailService.sendMail(tenant.getEmail(), subject, content);
       log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
       return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
     }
