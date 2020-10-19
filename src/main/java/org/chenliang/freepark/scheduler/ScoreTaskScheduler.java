@@ -15,7 +15,8 @@ import java.util.Random;
 
 @Service
 @Log4j2
-public class PointTaskScheduler {
+public class ScoreTaskScheduler {
+
   @Autowired
   private RtmapService rtmapService;
 

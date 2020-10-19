@@ -17,10 +17,10 @@ import java.util.Optional;
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Integer> {
   default Member findFirstPayableMember(LocalDate date, Tenant tenant) {
-    return findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenant(date, tenant);
+    return findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByScoreDesc(date, tenant);
   }
 
-  Member findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenant(LocalDate date, Tenant tenant);
+  Member findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByScoreDesc(LocalDate date, Tenant tenant);
 
   List<Member> findByTenantId(Integer tenantId);
 

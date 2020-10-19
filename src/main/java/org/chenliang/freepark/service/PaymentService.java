@@ -101,20 +101,29 @@ public class PaymentService {
 
     payment.setAmount(parkingFee.getReceivable());
 
-    if (parkingFee.getFeeNumber() != 0) {
-      String subject = "需要微信手工缴费";
-      String content = String.format("请使用微信小程序手工缴费 %d 元。", parkingFee.getFeeNumber() / 100);
-      emailService.sendMail(tenant.getEmail(), subject, content);
-      log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
-      return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
-    }
-
     Status status;
-    try {
-      status = rtmapService.pay(member, parkDetail);
-    } catch (Exception e) {
-      log.error("Call pay API exception", e);
-      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
+    if (parkingFee.getFeeNumber() != 0) {
+      if (member.getScore() < 200) {
+        String subject = "需要微信手工缴费";
+        String content = String.format("请使用微信小程序手工缴费 %d 元。", parkingFee.getFeeNumber() / 100);
+        emailService.sendMail(tenant.getEmail(), subject, content);
+        log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
+        return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
+      } else {
+        try {
+          status = rtmapService.payWithScore(member, parkDetail);
+        } catch (Exception e) {
+          log.error("Call pay with score API exception", e);
+          return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
+        }
+      }
+    } else {
+      try {
+        status = rtmapService.pay(member, parkDetail);
+      } catch (Exception e) {
+        log.error("Call pay API exception", e);
+        return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
+      }
     }
 
     if (status.getCode() == 401) {

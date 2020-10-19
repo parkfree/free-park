@@ -1,0 +1,1 @@
+ALTER TABLE `members` ADD COLUMN `score` INT(32) NOT NULL DEFAULT '0' AFTER `name`
