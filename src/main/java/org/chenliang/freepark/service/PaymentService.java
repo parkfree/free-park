@@ -1,5 +1,10 @@
 package org.chenliang.freepark.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.PaymentResponse;
@@ -16,15 +21,10 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 @Service
 @Log4j2
 public class PaymentService {
+
   @Autowired
   private RtmapService rtmapService;
 
@@ -40,17 +40,20 @@ public class PaymentService {
   @Autowired
   private ModelMapper modelMapper;
 
+  @Autowired
+  private EmailService emailService;
+
   private static final Map<PaymentStatus, String> statusComment = Map.of(
-      PaymentStatus.SUCCESS, "缴费成功",
-      PaymentStatus.NO_AVAILABLE_MEMBER, "没有可用的会员账号用于缴费",
-      PaymentStatus.CAR_NOT_FOUND, "车辆不在停车场",
-      PaymentStatus.NO_NEED_TO_PAY, "当前时段已缴费，无须再缴费",
-      PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工缴费"
+    PaymentStatus.SUCCESS, "缴费成功",
+    PaymentStatus.NO_AVAILABLE_MEMBER, "没有可用的会员账号用于缴费",
+    PaymentStatus.CAR_NOT_FOUND, "车辆不在停车场",
+    PaymentStatus.NO_NEED_TO_PAY, "当前时段已缴费，无须再缴费",
+    PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工缴费"
   );
 
   public PaymentResponse pay(int tenantId) {
     Tenant tenant = tenantRepository.findById(tenantId)
-        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+      .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
 
     Payment payment = new Payment();
     payment.setTenant(tenant);
@@ -89,7 +92,8 @@ public class PaymentService {
     }
 
     if (parkingFee.getMemberDeductible() == 0) {
-      log.info("Member {} doesn't has discount for today. Update its last paid date, and try to pay with new member", member.getMobile());
+      log.info("Member {} doesn't has discount for today. Update its last paid date, and try to pay with new member",
+        member.getMobile());
       member.setLastPaidAt(today);
       memberRepository.save(member);
       return pay(tenantId);
@@ -98,7 +102,9 @@ public class PaymentService {
     payment.setAmount(parkingFee.getReceivable());
 
     if (parkingFee.getFeeNumber() != 0) {
-      // TODO: notify owner
+      String subject = "需要微信手工缴费";
+      String content = String.format("请使用微信小程序手工缴费 %d 元。", parkingFee.getFeeNumber() / 100);
+      emailService.sendMail(tenant.getEmail(), subject, content);
       log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
       return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
     }
@@ -147,8 +153,8 @@ public class PaymentService {
     LocalDateTime from = today.atStartOfDay();
     LocalDateTime to = today.plusDays(1).atStartOfDay();
     return paymentRepository.getByTenantIdAndPaidAtBetween(tenant.getId(), from, to)
-        .stream()
-        .map(payment -> modelMapper.map(payment, PaymentResponse.class))
-        .collect(Collectors.toList());
+      .stream()
+      .map(payment -> modelMapper.map(payment, PaymentResponse.class))
+      .collect(Collectors.toList());
   }
 }
