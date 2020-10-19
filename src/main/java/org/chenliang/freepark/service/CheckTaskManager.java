@@ -48,7 +48,7 @@ public class CheckTaskManager {
         .initDelaySeconds(initDelaySeconds)
         .checkCount(0)
         .checkCountLimit(MAX_CHECK_COUNT)
-        .nextScheduledAt(LocalDateTime.now())
+        .nextScheduledAt(LocalDateTime.now().plusSeconds(initDelaySeconds))
         .periodMinutes((int) CHECK_PERIOD.toMinutes())
         .build();
 
