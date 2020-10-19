@@ -26,3 +26,12 @@ logging:
 check-cron: "0 30 8 * * MON-FRI"
 
 invite-code: "FREEPARK20"
+
+mail:
+  user: "example@qq.com"
+  password: "pwd"
+  smtp:
+    host: "smtp.qq.com"
+    port: "587"
+
+
