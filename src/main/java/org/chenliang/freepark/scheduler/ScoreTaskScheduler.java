@@ -27,7 +27,7 @@ public class ScoreTaskScheduler {
   private MemberRepository memberRepository;
 
   @Scheduled(cron = "0 0 8 * * *")
-  public void schedulePointTask() {
+  public void scheduleScoreTask() {
     final List<Member> members = memberRepository.findByEnablePointIsTrue();
     Instant now = Instant.now();
     Random random = new Random();

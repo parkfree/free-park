@@ -34,8 +34,7 @@ public class MemberService {
     return modelMapper.map(memberRepository.save(member), MemberResponse.class);
   }
 
-  public MemberResponse updateScore(Member member, int score) {
-    member.setScore(score);
+  public MemberResponse updateScore(Member member) {
     return modelMapper.map(memberRepository.save(member), MemberResponse.class);
   }
 

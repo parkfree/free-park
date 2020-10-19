@@ -103,7 +103,8 @@ public class PaymentService {
 
     Status status;
     if (parkingFee.getFeeNumber() != 0) {
-      if (member.getScore() < 200) {
+      int needScore = 200 * (parkingFee.getFeeNumber() / 300);
+      if (member.getScore() < needScore) {
         String subject = "需要微信手工缴费";
         String content = String.format("请使用微信小程序手工缴费 %d 元。", parkingFee.getFeeNumber() / 100);
         emailService.sendMail(tenant.getEmail(), subject, content);
@@ -111,9 +112,11 @@ public class PaymentService {
         return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
       } else {
         try {
-          status = rtmapService.payWithScore(member, parkDetail);
+          status = rtmapService.payWithScore(member, parkDetail, needScore, parkingFee.getFeeNumber());
         } catch (Exception e) {
           log.error("Call pay with score API exception", e);
+          String subject = "积分支付失败";
+          emailService.sendMail(tenant.getEmail(), subject, e.getMessage());
           return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
         }
       }
@@ -122,6 +125,7 @@ public class PaymentService {
         status = rtmapService.pay(member, parkDetail);
       } catch (Exception e) {
         log.error("Call pay API exception", e);
+        emailService.sendMail(tenant.getEmail(), "会员支付失败", e.getMessage());
         return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
       }
     }

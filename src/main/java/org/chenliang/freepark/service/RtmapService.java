@@ -69,7 +69,7 @@ public class RtmapService {
   }
 
   @Retryable(value = RestClientException.class, maxAttempts = 2)
-  public Status payWithScore(Member member, ParkDetail parkDetail) {
+  public Status payWithScore(Member member, ParkDetail parkDetail, int score, int feeNumber) {
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
     Payment payment = Payment.builder()
       .wxAppId(config.getWxAppId())
@@ -80,11 +80,11 @@ public class RtmapService {
       .marketOrderNumber(parkingFee.getMarketOrderNumber())
       .mobile(member.getMobile())
       .receivable(parkingFee.getReceivable())
-      .score(200)
-      .scoreDeductible(300)
+      .score(score)
+      .scoreDeductible(feeNumber)
       .scoreMinutes(0)
       .receiptVolume("")
-      .receiptDeductible(300)
+      .receiptDeductible(feeNumber)
       .receiptMinutes(0)
       .memberDeductible(parkingFee.getMemberDeductible())
       .memberMinutes(0)
@@ -100,19 +100,23 @@ public class RtmapService {
   }
 
   public void getPoint(Member member) {
-    log.info("before sign in {} score is: {}", member.getMobile(), member.getScore());
+    try {
+      log.info("before sign in {} score is: {}", member.getMobile(), member.getScore());
 
-    signIn(member);
+      checkIn(member);
 
-    int newScore = getScore(member);
+      getScore(member);
 
-    updateScore(member, newScore);
+      updateScore(member);
 
-    log.info("after sign in {} score is: {}", member.getMobile(), member.getScore());
+      log.info("after sign in {} score is: {}", member.getMobile(), member.getScore());
+    } catch (Exception ex) {
+      log.error("check in failed for {} cause by: {}", member.getMobile(), ex.getMessage());
+    }
   }
 
   @Retryable(value = RestClientException.class, maxAttempts = 3)
-  public void signIn(Member member) {
+  public void checkIn(Member member) throws Exception {
     final SignInRequest signInRequest = SignInRequest.builder()
       .openid(member.getOpenId())
       .channelId(1001)
@@ -121,62 +125,43 @@ public class RtmapService {
       .mobile(member.getMobile())
       .build();
 
-    try {
-      HttpEntity<SignInRequest> request = new HttpEntity<>(signInRequest, createHeaders(member));
-      Status status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
-      if (status != null) {
-        if (status.getCode() == 200) {
-          log.info("Check in point success for member {}", member.getMobile());
-        } else {
-          log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(),
-            status.getCode(),
-            status.getMsg());
-        }
-      } else {
-        log.warn("Check in point failed for member {} with null status", member.getMobile());
-      }
-    } catch (Exception e) {
-      log.error("Check in point request API error for member {}", member.getMobile(), e);
+    HttpEntity<SignInRequest> request = new HttpEntity<>(signInRequest, createHeaders(member));
+    Status status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
+    if (status.getCode() == 200) {
+      log.info("Check in point success for member {}", member.getMobile());
+    } else {
+      log.warn("Check in point failed for member {}, code: {}, message: {}",
+        member.getMobile(),
+        status.getCode(),
+        status.getMsg());
+      throw new Exception("check in failed. " + status.getMsg());
     }
   }
 
   @Retryable(value = RestClientException.class, maxAttempts = 3)
-  public int getScore(Member member) {
+  public void getScore(Member member) throws Exception {
     HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
-    try {
-      ScoreResponse response = client.exchange(config.getUris().get("getScore"), HttpMethod.GET, headers, ScoreResponse.class,
-        member.getTenant().getId(),
-        member.getUserId()).getBody();
-      if (response != null) {
-        if (response.getStatus() == 200) {
-          log.info("get score success for member {}", member.getMobile());
-          return response.getTotal();
-        } else {
-          log.warn("update score failed for member {}, code: {}, message: {}",
-            member.getMobile(),
-            response.getStatus(),
-            response.getMessage());
-        }
-      } else {
-        log.warn("get score failed for member {} with null status", member.getMobile());
-      }
-    } catch (Exception ex) {
-      log.error("get score request API error for member {}", member.getMobile(), ex);
+    ScoreResponse response = client.exchange(config.getUris().get("getScore"), HttpMethod.GET, headers, ScoreResponse.class,
+      member.getTenant().getId(),
+      member.getUserId()).getBody();
+    if (response.getStatus() == 200) {
+      log.info("get score success for member {}", member.getMobile());
+    } else {
+      log.warn("update score failed for member {}, code: {}, message: {}",
+        member.getMobile(),
+        response.getStatus(),
+        response.getMessage());
+      throw new Exception("get score failed. " + response.getMessage());
     }
-    return -1;
   }
 
   @Retryable(value = Exception.class, maxAttempts = 3)
-  public void updateScore(Member member, int newScore) {
-    if (newScore != -1 && member.getScore() != newScore) {
-      MemberResponse memberResponse = memberService.updateScore(member, newScore);
-      if (memberResponse != null) {
-        log.info("update score successful for {}", member.getMobile());
-      } else {
-        log.info("update score failed for {}", member.getMobile());
-      }
+  public void updateScore(Member member) {
+    MemberResponse memberResponse = memberService.updateScore(member);
+    if (memberResponse != null) {
+      log.info("update score successful for {}", member.getMobile());
     } else {
-      log.info("no need update score for {}", member.getMobile());
+      log.info("update score failed for {}", member.getMobile());
     }
   }
 
