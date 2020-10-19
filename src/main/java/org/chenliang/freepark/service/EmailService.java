@@ -41,21 +41,17 @@ public class EmailService {
     properties.setProperty("mail.smtp.auth", "true");
     properties.setProperty("mail.smtp.host", smtpHost);
     properties.setProperty("mail.smtp.port", smtpPort);
-    properties.setProperty("mail.user", user);
-    properties.setProperty("mail.password", password);
 
     Authenticator authenticator = new Authenticator() {
       @Override
       protected PasswordAuthentication getPasswordAuthentication() {
-        String userName = properties.getProperty("mail.user");
-        String password = properties.getProperty("mail.password");
-        return new PasswordAuthentication(userName, password);
+        return new PasswordAuthentication(user, password);
       }
     };
 
     Session session = Session.getDefaultInstance(properties, authenticator);
     try {
-      InternetAddress form = new InternetAddress(properties.getProperty("mail.user"));
+      InternetAddress form = new InternetAddress(user);
       form.setPersonal("free parking");
       InternetAddress to = new InternetAddress(sendTo);
 
