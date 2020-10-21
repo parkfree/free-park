@@ -3,7 +3,7 @@ package org.chenliang.freepark.scheduler;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.repository.MemberRepository;
-import org.chenliang.freepark.service.RtmapService;
+import org.chenliang.freepark.service.PointService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -16,9 +16,8 @@ import java.util.Random;
 @Service
 @Log4j2
 public class PointTaskScheduler {
-
   @Autowired
-  private RtmapService rtmapService;
+  private PointService pointService;
 
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
@@ -35,7 +34,7 @@ public class PointTaskScheduler {
       int delaySeconds = random.nextInt(3600 * 9);
       Instant startTime = now.plusSeconds(delaySeconds);
       log.info("Scheduled member {} to get checkin point at {}", member.getMobile(), startTime.toString());
-      taskScheduler.schedule(() -> rtmapService.getPoint(member), startTime);
+      taskScheduler.schedule(() -> pointService.getPoint(member.getId()), startTime);
     });
   }
 }
