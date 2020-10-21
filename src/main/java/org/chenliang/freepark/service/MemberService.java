@@ -34,10 +34,6 @@ public class MemberService {
     return modelMapper.map(memberRepository.save(member), MemberResponse.class);
   }
 
-  public MemberResponse updateScore(Member member) {
-    return modelMapper.map(memberRepository.save(member), MemberResponse.class);
-  }
-
   private void setMemberFields(MemberRequest memberRequest, Member member) {
     member.setMemType(memberRequest.getMemType());
     member.setMobile(memberRequest.getMobile());

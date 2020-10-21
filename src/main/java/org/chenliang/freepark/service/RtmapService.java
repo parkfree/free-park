@@ -3,13 +3,13 @@ package org.chenliang.freepark.service;
 import java.util.UUID;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.configuration.FreeParkConfig;
-import org.chenliang.freepark.model.MemberResponse;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Payment;
 import org.chenliang.freepark.model.rtmap.PointsResponse;
 import org.chenliang.freepark.model.rtmap.SignInRequest;
 import org.chenliang.freepark.model.rtmap.Status;
+import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -29,7 +29,7 @@ public class RtmapService {
   private final FreeParkConfig config;
 
   @Autowired
-  private MemberService memberService;
+  private MemberRepository memberRepository;
 
   public RtmapService(RestTemplate client, FreeParkConfig config) {
     this.client = client;
@@ -162,13 +162,12 @@ public class RtmapService {
     }
   }
 
-  @Retryable(value = Exception.class, maxAttempts = 3)
   public void updatePoints(Member member) {
-    MemberResponse memberResponse = memberService.updateScore(member);
-    if (memberResponse != null) {
+    try {
+      memberRepository.save(member);
       log.info("update score successful for {}", member.getMobile());
-    } else {
-      log.info("update score failed for {}", member.getMobile());
+    } catch (Exception ex) {
+      log.error("update score failed for {} cause by: {}", member.getMobile(), ex.getMessage());
     }
   }
 
