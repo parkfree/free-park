@@ -3,6 +3,7 @@ package org.chenliang.freepark.repository;
 import org.chenliang.freepark.model.entity.Payment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -18,4 +19,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer>, JpaS
 
   @EntityGraph(attributePaths = {"member", "tenant"})
   Page<Payment> findAll(Pageable pageable);
+
+  @EntityGraph(attributePaths = {"member", "tenant"})
+  Page<Payment> findAll(Specification<Payment> specification, Pageable pageable);
 }
