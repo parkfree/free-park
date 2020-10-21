@@ -9,6 +9,7 @@ import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Payment;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
+import org.chenliang.freepark.model.rtmap.ParkDetail.ParkingFee;
 import org.chenliang.freepark.model.rtmap.Status;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.repository.PaymentRepository;
@@ -56,14 +57,13 @@ public class PaymentService {
   );
 
   public PaymentResponse pay(int tenantId) {
-    Tenant tenant = tenantRepository.findById(tenantId)
-        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+    Tenant tenant = tenantRepository.findById(tenantId).orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+    log.info("Start to pay car {}", tenant.getCarNumber());
 
     Payment payment = new Payment();
     payment.setTenant(tenant);
 
     LocalDate today = LocalDate.now();
-    log.info("Start to pay car {}", tenant.getCarNumber());
     Member member = memberRepository.findFirstPayableMember(today, tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task", tenant.getCarNumber());
@@ -106,23 +106,38 @@ public class PaymentService {
     payment.setAmount(parkingFee.getReceivable());
 
     if (parkingFee.getFeeNumber() != 0) {
-      String subject = "需要微信手工缴费";
-      String content = String.format("请使用微信小程序手工缴费 %d 元。", parkingFee.getFeeNumber() / 100);
-      emailService.sendMail(tenant.getEmail(), subject, content);
-      log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
-      return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
+      int needPoints = calculateNeedPoints(parkDetail);
+      if (member.getPoints() < needPoints) {
+        return cannotPay(tenant, parkDetail, payment);
+      } else {
+        return payWithPoints(tenant, member, parkDetail, payment);
+      }
+    } else {
+      return payWithBenefits(tenant, member, parkDetail, payment);
     }
+  }
 
+  private PaymentResponse cannotPay(Tenant tenant, ParkDetail parkDetail, Payment payment) {
+    ParkingFee parkingFee = parkDetail.getParkingFee();
+    String subject = "需要微信手工缴费";
+    String content = String.format("请使用微信小程序手工缴费 %d 元。", parkingFee.getFeeNumber() / 100);
+    emailService.sendMail(tenant.getEmail(), subject, content);
+    log.info("Need manually pay {} CMB for car {}", (parkingFee.getFeeNumber() / 100), tenant.getCarNumber());
+    return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
+  }
+
+  private PaymentResponse payWithBenefits(Tenant tenant, Member member, ParkDetail parkDetail, Payment payment) {
     Status status;
     try {
       status = rtmapService.pay(member, parkDetail);
     } catch (Exception e) {
       log.error("Call pay API exception", e);
+      emailService.sendMail(tenant.getEmail(), "会员支付失败", e.getMessage());
       return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
     }
 
     if (status.getCode() == 401) {
-      member.setLastPaidAt(today);
+      member.setLastPaidAt(LocalDate.now());
       memberRepository.save(member);
       log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
       updateTenantTotalAmount(tenant, payment);
@@ -132,6 +147,39 @@ public class PaymentService {
       payment.setStatus(PaymentStatus.PAY_API_ERROR);
       return createResponse(payment, PaymentStatus.PAY_API_ERROR, status.getMsg());
     }
+  }
+
+  private PaymentResponse payWithPoints(Tenant tenant, Member member, ParkDetail parkDetail,  Payment payment) {
+    int feeNumber = parkDetail.getParkingFee().getFeeNumber();
+    int needPoints = calculateNeedPoints(parkDetail);
+    Status status;
+    try {
+      status = rtmapService.payWithPoints(member, parkDetail, needPoints);
+    } catch (Exception e) {
+      log.error("Call pay with score API exception", e);
+      String subject = "积分支付失败";
+      emailService.sendMail(tenant.getEmail(), subject, e.getMessage());
+      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
+    }
+
+    if (status.getCode() == 401) {
+      member.setLastPaidAt(LocalDate.now());
+      member.setPoints(member.getPoints() - needPoints);
+      memberRepository.save(member);
+      log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
+      updateTenantTotalAmount(tenant, payment);
+      return createResponse(payment, PaymentStatus.SUCCESS);
+    } else {
+      log.warn("Paid for car {} with point failed.", tenant.getCarNumber());
+      String subject = "需要微信手工缴费";
+      String content = String.format("积分支付失败，请使用微信小程序手工缴费 %d 元。", feeNumber / 100);
+      emailService.sendMail(tenant.getEmail(), subject, content);
+      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
+    }
+  }
+
+  private int calculateNeedPoints(ParkDetail parkDetail) {
+    return 200 * (parkDetail.getParkingFee().getFeeNumber() / 300);
   }
 
   private void updateTenantTotalAmount(Tenant tenant, Payment payment) {

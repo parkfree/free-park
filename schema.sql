@@ -36,6 +36,7 @@ CREATE TABLE `members` (
   `mem_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `mobile` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `name` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `points` int(32) NOT NULL DEFAULT '0',
   `enable_pay` tinyint(1) NOT NULL DEFAULT '1',
   `enable_point` tinyint(1) NOT NULL DEFAULT '0',
   `last_paid_at` date NOT NULL DEFAULT '2020-01-01',
