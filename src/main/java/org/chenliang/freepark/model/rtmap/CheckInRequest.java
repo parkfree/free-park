@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Data
 @Builder
-public class SignInRequest {
+public class CheckInRequest {
   private String openid;
   private String marketId;
   private String cardNo;
