@@ -26,7 +26,7 @@ docker run --name freepark -p 43306:3306 -e MYSQL_ROOT_PASSWORD=any -d mysql:8
 Import DDL to MySQL
 
 ```
-mysql -h 127.0.0.1 -u root -p freepark.sql < schema.sql
+mysql -h 127.0.0.1 -u root -p freepark < schema.sql
 ```
 
 ## MySQL Operation

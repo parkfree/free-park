@@ -48,28 +48,6 @@ public class RtmapService {
   }
 
   @Retryable(value = RestClientException.class, maxAttempts = 2)
-  public Status pay(Member member, ParkDetail parkDetail) {
-    ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
-    Payment payment = Payment.builder()
-      .wxAppId(config.getWxAppId())
-      .openid(member.getOpenId())
-      .carNumber(parkingFee.getCarNumber())
-      .cardName(member.getMemType())
-      .userId(member.getUserId())
-      .marketOrderNumber(parkingFee.getMarketOrderNumber())
-      .mobile(member.getMobile())
-      .receivable(parkingFee.getReceivable())
-      .memberDeductible(parkingFee.getMemberDeductible())
-      .feeNumber(parkingFee.getFeeNumber())
-      .formId(randomHexHash())
-      .build();
-
-    HttpEntity<Payment> request = new HttpEntity<>(payment, createHeaders(member));
-
-    return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
-  }
-
-  @Retryable(value = RestClientException.class, maxAttempts = 2)
   public Status payWithPoints(Member member, ParkDetail parkDetail, int points) {
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
     Payment payment = Payment.builder()
@@ -82,7 +60,7 @@ public class RtmapService {
       .mobile(member.getMobile())
       .receivable(parkingFee.getReceivable())
       .score(points)
-      .scoreDeductible(parkingFee.getFeeNumber())
+      .scoreDeductible(points / 200 * 300)
       .scoreMinutes(0)
       .receiptVolume("")
       .receiptDeductible(0)
