@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class ScoreRequest {
+public class PointsRequest {
   private int tenantType;
   private int tenantId;
   private String cid;

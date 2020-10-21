@@ -7,7 +7,7 @@ import org.chenliang.freepark.model.MemberResponse;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Payment;
-import org.chenliang.freepark.model.rtmap.ScoreResponse;
+import org.chenliang.freepark.model.rtmap.PointsResponse;
 import org.chenliang.freepark.model.rtmap.SignInRequest;
 import org.chenliang.freepark.model.rtmap.Status;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,10 +144,10 @@ public class RtmapService {
   @Retryable(value = RestClientException.class, maxAttempts = 3)
   public void getLatestPoints(Member member) throws Exception {
     HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
-    ScoreResponse response = client.exchange(config.getUris().get("getPoints"),
+    PointsResponse response = client.exchange(config.getUris().get("getPoints"),
       HttpMethod.GET,
       headers,
-      ScoreResponse.class,
+      PointsResponse.class,
       MARKET_ID,
       member.getUserId()).getBody();
     if (response.getStatus() == 200) {

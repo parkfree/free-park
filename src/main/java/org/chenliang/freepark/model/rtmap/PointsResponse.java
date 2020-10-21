@@ -4,7 +4,7 @@ import lombok.Data;
 import lombok.experimental.Delegate;
 
 @Data
-public class ScoreResponse {
+public class PointsResponse {
 
   private int status;
   private String message;
@@ -13,6 +13,7 @@ public class ScoreResponse {
 
   @Data
   private static class InnerData {
+
     private int scoreF;
     private int total;
     private int balance;
