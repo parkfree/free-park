@@ -8,7 +8,7 @@ freepark:
     parkDetail: "/app-park/parkingFee/getDetailByCarNumber?wxAppId={wxAppId}&openid={openid}&carNumber={carNumber}&userId={userId}&memType={memType}"
     pay: "/app-park/payParkingFee"
     checkInPoint: "/sign/signRecord"
-    getScore: "/wxapp-root/api/v1/score//account?tenantType=1&tenantId={tenantId}&cid={cid}"
+    getPoints: "/wxapp-root/api/v1/score//account?tenantType=1&tenantId={tenantId}&cid={cid}"
   timeout:
     connect: 1000
     read: 5000

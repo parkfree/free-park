@@ -24,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 @Log4j2
 public class RtmapService {
 
+  private static final String MARKET_ID = "12964";
   private final RestTemplate client;
   private final FreeParkConfig config;
 
@@ -69,7 +70,7 @@ public class RtmapService {
   }
 
   @Retryable(value = RestClientException.class, maxAttempts = 2)
-  public Status payWithScore(Member member, ParkDetail parkDetail, int score, int feeNumber) {
+  public Status payWithPoints(Member member, ParkDetail parkDetail, int points) {
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
     Payment payment = Payment.builder()
       .wxAppId(config.getWxAppId())
@@ -80,17 +81,17 @@ public class RtmapService {
       .marketOrderNumber(parkingFee.getMarketOrderNumber())
       .mobile(member.getMobile())
       .receivable(parkingFee.getReceivable())
-      .score(score)
-      .scoreDeductible(feeNumber)
+      .score(points)
+      .scoreDeductible(parkingFee.getFeeNumber())
       .scoreMinutes(0)
       .receiptVolume("")
-      .receiptDeductible(feeNumber)
+      .receiptDeductible(0)
       .receiptMinutes(0)
       .memberDeductible(parkingFee.getMemberDeductible())
       .memberMinutes(0)
       .fullDeductible(0)
       .fullMinutes(0)
-      .feeNumber(parkingFee.getFeeNumber())
+      .feeNumber(0)
       .formId(randomHexHash())
       .build();
 
@@ -101,15 +102,15 @@ public class RtmapService {
 
   public void getPoint(Member member) {
     try {
-      log.info("before sign in {} score is: {}", member.getMobile(), member.getScore());
+      log.info("before sign in {} score is: {}", member.getMobile(), member.getPoints());
 
       checkIn(member);
 
-      getScore(member);
+      getLatestPoints(member);
 
-      updateScore(member);
+      updatePoints(member);
 
-      log.info("after sign in {} score is: {}", member.getMobile(), member.getScore());
+      log.info("after sign in {} score is: {}", member.getMobile(), member.getPoints());
     } catch (Exception ex) {
       log.error("check in failed for {} cause by: {}", member.getMobile(), ex.getMessage());
     }
@@ -120,7 +121,7 @@ public class RtmapService {
     final SignInRequest signInRequest = SignInRequest.builder()
       .openid(member.getOpenId())
       .channelId(1001)
-      .marketId("12964")
+      .marketId(MARKET_ID)
       .cardNo(member.getUserId())
       .mobile(member.getMobile())
       .build();
@@ -129,6 +130,8 @@ public class RtmapService {
     Status status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
     if (status.getCode() == 200) {
       log.info("Check in point success for member {}", member.getMobile());
+    } else if (status.getCode() == 400) {
+      log.info("Has been checked in point for member {}", member.getMobile());
     } else {
       log.warn("Check in point failed for member {}, code: {}, message: {}",
         member.getMobile(),
@@ -139,13 +142,17 @@ public class RtmapService {
   }
 
   @Retryable(value = RestClientException.class, maxAttempts = 3)
-  public void getScore(Member member) throws Exception {
+  public void getLatestPoints(Member member) throws Exception {
     HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
-    ScoreResponse response = client.exchange(config.getUris().get("getScore"), HttpMethod.GET, headers, ScoreResponse.class,
-      member.getTenant().getId(),
+    ScoreResponse response = client.exchange(config.getUris().get("getPoints"),
+      HttpMethod.GET,
+      headers,
+      ScoreResponse.class,
+      MARKET_ID,
       member.getUserId()).getBody();
     if (response.getStatus() == 200) {
-      log.info("get score success for member {}", member.getMobile());
+      member.setPoints(response.getTotal());
+      log.info("get score success for member {} total point is: {}", member.getMobile(), response.getTotal());
     } else {
       log.warn("update score failed for member {}, code: {}, message: {}",
         member.getMobile(),
@@ -156,7 +163,7 @@ public class RtmapService {
   }
 
   @Retryable(value = Exception.class, maxAttempts = 3)
-  public void updateScore(Member member) {
+  public void updatePoints(Member member) {
     MemberResponse memberResponse = memberService.updateScore(member);
     if (memberResponse != null) {
       log.info("update score successful for {}", member.getMobile());
@@ -167,11 +174,11 @@ public class RtmapService {
 
   private HttpHeaders createHeaders(Member member) {
     HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.add("Token", creatToken(member.getUserId(), member.getOpenId()));
+    httpHeaders.add("Token", createToken(member.getUserId(), member.getOpenId()));
     return httpHeaders;
   }
 
-  private String creatToken(String userId, String openId) {
+  private String createToken(String userId, String openId) {
     long timestamp = System.currentTimeMillis();
 
     return String.format("consumer=188880000002&timestamp=%d&nonce=%s&sign=%s&tenantId=12964&cid=%s&openId=%s&v=20200704",

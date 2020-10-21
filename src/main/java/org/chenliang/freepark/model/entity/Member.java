@@ -29,7 +29,7 @@ public class Member {
   private String memType;
   private String mobile;
   private String name;
-  private int score;
+  private int points;
   private boolean enablePay;
   private boolean enablePoint;
   private LocalDate lastPaidAt;
