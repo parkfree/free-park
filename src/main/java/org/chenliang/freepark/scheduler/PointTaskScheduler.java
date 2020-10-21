@@ -15,7 +15,7 @@ import java.util.Random;
 
 @Service
 @Log4j2
-public class ScoreTaskScheduler {
+public class PointTaskScheduler {
 
   @Autowired
   private RtmapService rtmapService;
@@ -27,7 +27,7 @@ public class ScoreTaskScheduler {
   private MemberRepository memberRepository;
 
   @Scheduled(cron = "0 0 8 * * *")
-  public void scheduleScoreTask() {
+  public void schedulePointsTask() {
     final List<Member> members = memberRepository.findByEnablePointIsTrue();
     Instant now = Instant.now();
     Random random = new Random();
