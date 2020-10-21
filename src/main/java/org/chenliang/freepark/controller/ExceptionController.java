@@ -6,24 +6,30 @@ import org.chenliang.freepark.exception.InvalidRequestException;
 import org.chenliang.freepark.exception.PaymentErrorException;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.ErrorResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import javax.persistence.EntityNotFoundException;
-
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @ControllerAdvice
 @Log4j2
-public class ExceptionController {
+public class ExceptionController extends ResponseEntityExceptionHandler {
   @ExceptionHandler(value = Exception.class)
   public ResponseEntity<ErrorResponse> internalErrorHandler(Exception e) {
     log.error("Unexpected exception", e);
@@ -45,18 +51,35 @@ public class ExceptionController {
     return response(NOT_FOUND, ErrorCodes.NOT_FOUND, e.getMessage());
   }
 
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ErrorResponse> handleValidationExceptions(
-      MethodArgumentNotValidException e) {
+  public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpHeaders headers, HttpStatus status, WebRequest request) {
     Map<String, String> errors = new HashMap<>();
     e.getBindingResult().getAllErrors().forEach((error) -> {
       String fieldName = ((FieldError) error).getField();
       String errorMessage = error.getDefaultMessage();
       errors.put(fieldName, errorMessage);
     });
-    ResponseEntity<ErrorResponse> response = response(BAD_REQUEST, ErrorCodes.INVALID_PARAMETERS, "Invalid parameters");
-    response.getBody().setDetails(errors);
-    return response;
+
+    ErrorResponse error = ErrorResponse.builder()
+        .code(ErrorCodes.INVALID_PARAMETERS)
+        .message("Invalid parameters")
+        .details(errors)
+        .build();
+    return handleExceptionInternal(e, error, headers, status, request);
+  }
+
+  public ResponseEntity<Object> handleBindException(BindException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+    Map<String, String> errors = new HashMap<>();
+    ex.getBindingResult().getAllErrors().forEach((error) -> {
+      String fieldName = ((FieldError) error).getField();
+      String errorMessage = error.getDefaultMessage();
+      errors.put(fieldName, errorMessage);
+    });
+    ErrorResponse error = ErrorResponse.builder()
+        .code(ErrorCodes.INVALID_PARAMETERS)
+        .message("Invalid query parameters")
+        .details(errors)
+        .build();
+    return handleExceptionInternal(ex, error, headers, status, request);
   }
 
   @ExceptionHandler(value = {AccessDeniedException.class})
