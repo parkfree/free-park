@@ -2,8 +2,13 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.configuration.FreeParkConfig;
+import org.chenliang.freepark.exception.RtmapApiException;
 import org.chenliang.freepark.model.entity.Member;
-import org.chenliang.freepark.model.rtmap.*;
+import org.chenliang.freepark.model.rtmap.CheckInRequest;
+import org.chenliang.freepark.model.rtmap.ParkDetail;
+import org.chenliang.freepark.model.rtmap.Payment;
+import org.chenliang.freepark.model.rtmap.PointsResponse;
+import org.chenliang.freepark.model.rtmap.Status;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -34,8 +39,8 @@ public class RtmapService {
     HttpEntity<Void> request = new HttpEntity<>(httpHeaders);
 
     ResponseEntity<ParkDetail> response = client.exchange(config.getUris().get("parkDetail"), HttpMethod.GET, request,
-        ParkDetail.class, config.getWxAppId(), member.getOpenId(),
-        carNumber, member.getUserId(), member.getMemType());
+                                                          ParkDetail.class, config.getWxAppId(), member.getOpenId(),
+                                                          carNumber, member.getUserId(), member.getMemType());
     return response.getBody();
   }
 
@@ -70,8 +75,8 @@ public class RtmapService {
     return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
   }
 
-  @Retryable(value = RestClientException.class, maxAttempts = 3)
-  public Status checkIn(Member member) {
+  @Retryable(value = RtmapApiException.class, maxAttempts = 3)
+  public void checkIn(Member member) {
     final CheckInRequest checkInRequest = CheckInRequest.builder()
         .openid(member.getOpenId())
         .channelId(1001)
@@ -81,14 +86,41 @@ public class RtmapService {
         .build();
 
     HttpEntity<CheckInRequest> request = new HttpEntity<>(checkInRequest, createHeaders(member));
-    return client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
+
+    Status status;
+    try {
+      status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
+    } catch (Exception e) {
+      log.error("Request Check in point API error for member {}", member.getMobile(), e);
+      throw new RtmapApiException(e);
+    }
+    if (status.getCode() != 200) {
+      log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(), status.getCode(),
+               status.getMsg());
+      throw new RtmapApiException(status.getCode(), status.getMsg());
+    }
+    log.info("Check in point success for member {}", member.getMobile());
   }
 
-  @Retryable(value = RestClientException.class, maxAttempts = 3)
+  @Retryable(value = RtmapApiException.class, maxAttempts = 3)
   public PointsResponse getAccountPoints(Member member) {
     HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
-    return client.exchange(config.getUris().get("getPoints"), HttpMethod.GET, headers, PointsResponse.class, MARKET_ID,
-        member.getUserId()).getBody();
+    PointsResponse pointsResponse;
+    try {
+      pointsResponse = client.exchange(config.getUris().get("getPoints"), HttpMethod.GET, headers, PointsResponse.class,
+                                       MARKET_ID, member.getUserId()).getBody();
+    } catch (Exception e) {
+      log.error("Request get account point API error for member {}", member.getMobile(), e);
+      throw new RtmapApiException(e);
+    }
+
+    if (pointsResponse.getStatus() != 200) {
+      log.warn("Get account point for member {} failed, code: {}, message: {}", member.getMobile(),
+               pointsResponse.getStatus(), pointsResponse.getMessage());
+      throw new RtmapApiException(pointsResponse.getStatus(), pointsResponse.getMessage());
+    }
+    log.info("Get account point for member {} success, total points are: {}", member.getMobile(), pointsResponse.getTotal());
+    return pointsResponse;
   }
 
   private HttpHeaders createHeaders(Member member) {
@@ -101,7 +133,7 @@ public class RtmapService {
     long timestamp = System.currentTimeMillis();
 
     return String.format("consumer=188880000002&timestamp=%d&nonce=%s&sign=%s&tenantId=12964&cid=%s&openId=%s&v=20200704",
-        timestamp, randomHexHash(), randomHexHash(), userId, openId);
+                         timestamp, randomHexHash(), randomHexHash(), userId, openId);
   }
 
   private String randomHexHash() {
