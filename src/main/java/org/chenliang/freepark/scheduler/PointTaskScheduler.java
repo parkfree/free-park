@@ -1,6 +1,7 @@
 package org.chenliang.freepark.scheduler;
 
 import lombok.extern.log4j.Log4j2;
+import org.chenliang.freepark.exception.RtmapApiException;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.service.PointService;
@@ -34,7 +35,14 @@ public class PointTaskScheduler {
       int delaySeconds = random.nextInt(3600 * 9);
       Instant startTime = now.plusSeconds(delaySeconds);
       log.info("Scheduled member {} to get checkin point at {}", member.getMobile(), startTime.toString());
-      taskScheduler.schedule(() -> pointService.getPoint(member.getId()), startTime);
+      taskScheduler.schedule(() -> {
+        try {
+          pointService.getPoint(member.getId());
+        } catch (RtmapApiException ignored) {
+        } catch (Exception e) {
+          log.info("Point task for member {} failed with unexpected exception", member.getMobile(), e);
+        }
+      }, startTime);
     });
   }
 }
