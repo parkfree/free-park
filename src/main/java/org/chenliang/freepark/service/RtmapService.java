@@ -2,7 +2,8 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.configuration.FreeParkConfig;
-import org.chenliang.freepark.exception.RtmapApiException;
+import org.chenliang.freepark.exception.RtmapApiErrorResponseException;
+import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.CheckInRequest;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
@@ -75,7 +76,7 @@ public class RtmapService {
     return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
   }
 
-  @Retryable(value = RtmapApiException.class, maxAttempts = 3)
+  @Retryable(value = RtmapApiRequestErrorException.class, maxAttempts = 2)
   public void checkIn(Member member) {
     final CheckInRequest checkInRequest = CheckInRequest.builder()
         .openid(member.getOpenId())
@@ -92,17 +93,17 @@ public class RtmapService {
       status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
     } catch (Exception e) {
       log.error("Request Check in point API error for member {}", member.getMobile(), e);
-      throw new RtmapApiException(e);
+      throw new RtmapApiRequestErrorException(e);
     }
     if (status.getCode() != 200) {
       log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(), status.getCode(),
                status.getMsg());
-      throw new RtmapApiException(status.getCode(), status.getMsg());
+      throw new RtmapApiErrorResponseException(status.getCode(), status.getMsg());
     }
     log.info("Check in point success for member {}", member.getMobile());
   }
 
-  @Retryable(value = RtmapApiException.class, maxAttempts = 3)
+  @Retryable(value = RtmapApiRequestErrorException.class, maxAttempts = 2)
   public PointsResponse getAccountPoints(Member member) {
     HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
     PointsResponse pointsResponse;
@@ -111,13 +112,13 @@ public class RtmapService {
                                        MARKET_ID, member.getUserId()).getBody();
     } catch (Exception e) {
       log.error("Request get account point API error for member {}", member.getMobile(), e);
-      throw new RtmapApiException(e);
+      throw new RtmapApiRequestErrorException(e);
     }
 
     if (pointsResponse.getStatus() != 200) {
       log.warn("Get account point for member {} failed, code: {}, message: {}", member.getMobile(),
                pointsResponse.getStatus(), pointsResponse.getMessage());
-      throw new RtmapApiException(pointsResponse.getStatus(), pointsResponse.getMessage());
+      throw new RtmapApiErrorResponseException(pointsResponse.getStatus(), pointsResponse.getMessage());
     }
     log.info("Get account point for member {} success, total points are: {}", member.getMobile(), pointsResponse.getTotal());
     return pointsResponse;
