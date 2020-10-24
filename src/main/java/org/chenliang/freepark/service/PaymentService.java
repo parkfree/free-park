@@ -47,12 +47,14 @@ public class PaymentService {
   @Autowired
   private EmailService emailService;
 
-  private static final Map<PaymentStatus, String> statusComment = Map.of(
+  private static final Map<PaymentStatus, String> STATUS_COMMENT_MAP = Map.of(
       PaymentStatus.SUCCESS, "缴费成功",
       PaymentStatus.NO_AVAILABLE_MEMBER, "没有可用的会员账号用于缴费",
       PaymentStatus.CAR_NOT_FOUND, "车辆不在停车场",
       PaymentStatus.NO_NEED_TO_PAY, "当前时段已缴费，无须再缴费",
-      PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工缴费"
+      PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工缴费",
+      PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误",
+      PaymentStatus.PAY_API_ERROR, "调用缴费API错误"
   );
 
   public PaymentResponse pay(int tenantId) {
@@ -77,7 +79,7 @@ public class PaymentService {
     } catch (Exception e) {
       log.error("Call park detail API exception", e);
       sendFailedEmail(tenant.getEmail());
-      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误");
+      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
     }
 
     if (parkDetail.getCode() == 400) {
@@ -86,7 +88,7 @@ public class PaymentService {
     } else if (parkDetail.getCode() != 200) {
       log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(), parkDetail.getMsg());
       sendFailedEmail(tenant.getEmail());
-      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误");
+      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
     }
 
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
@@ -129,7 +131,7 @@ public class PaymentService {
     } catch (Exception e) {
       log.error("Call pay API exception", e);
       sendFailedEmail(tenant.getEmail(), amount);
-      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
+      return createResponse(payment, PaymentStatus.PAY_API_ERROR);
     }
 
     if (status.getCode() == 401) {
@@ -140,7 +142,7 @@ public class PaymentService {
     } else {
       log.warn("Call pay API return unexpected error code: {}, message: {}", status.getCode(), status.getMsg());
       sendFailedEmail(tenant.getEmail(), amount);
-      return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
+      return createResponse(payment, PaymentStatus.PAY_API_ERROR);
     }
   }
 
@@ -180,11 +182,7 @@ public class PaymentService {
   }
 
   private PaymentResponse createResponse(Payment payment, PaymentStatus status) {
-    String comment = statusComment.get(status);
-    return createResponse(payment, status, comment);
-  }
-
-  private PaymentResponse createResponse(Payment payment, PaymentStatus status, String comment) {
+    String comment = STATUS_COMMENT_MAP.get(status);
     payment.setStatus(status);
     payment.setComment(comment);
     payment.setPaidAt(LocalDateTime.now());
