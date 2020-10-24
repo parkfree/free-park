@@ -54,7 +54,8 @@ public class PaymentService {
       PaymentStatus.NO_NEED_TO_PAY, "当前时段已缴费，无须再缴费",
       PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工缴费",
       PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误",
-      PaymentStatus.PAY_API_ERROR, "调用缴费API错误"
+      PaymentStatus.PAY_API_ERROR, "调用缴费API错误",
+      PaymentStatus.MEMBER_NO_DISCOUNT, "会员账号没有优惠"
   );
 
   public PaymentResponse pay(int tenantId) {
@@ -103,6 +104,7 @@ public class PaymentService {
                member.getMobile());
       member.setLastPaidAt(today);
       memberRepository.save(member);
+      savePayment(payment, PaymentStatus.MEMBER_NO_DISCOUNT);
       return pay(tenantId);
     }
 
@@ -182,12 +184,16 @@ public class PaymentService {
   }
 
   private PaymentResponse createResponse(Payment payment, PaymentStatus status) {
+    Payment savedPayment = savePayment(payment, status);
+    return modelMapper.map(savedPayment, PaymentResponse.class);
+  }
+
+  private Payment savePayment(Payment payment, PaymentStatus status) {
     String comment = STATUS_COMMENT_MAP.get(status);
     payment.setStatus(status);
     payment.setComment(comment);
     payment.setPaidAt(LocalDateTime.now());
-    Payment savedPayment = paymentRepository.save(payment);
-    return modelMapper.map(savedPayment, PaymentResponse.class);
+    return paymentRepository.save(payment);
   }
 
   public List<PaymentResponse> getTodayPayments(Tenant tenant) {
