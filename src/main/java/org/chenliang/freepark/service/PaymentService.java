@@ -76,6 +76,7 @@ public class PaymentService {
       parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
     } catch (Exception e) {
       log.error("Call park detail API exception", e);
+      sendFailedEmail(tenant.getEmail());
       return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误");
     }
 
@@ -84,7 +85,8 @@ public class PaymentService {
       return createResponse(payment, PaymentStatus.CAR_NOT_FOUND);
     } else if (parkDetail.getCode() != 200) {
       log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(), parkDetail.getMsg());
-      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR, parkDetail.getMsg());
+      sendFailedEmail(tenant.getEmail());
+      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误");
     }
 
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
@@ -114,7 +116,7 @@ public class PaymentService {
   }
 
   private PaymentResponse cannotPay(Tenant tenant, int amount, Payment payment) {
-    sendManuallyPayEmail(tenant, amount);
+    sendManuallyPayEmail(tenant.getEmail(), amount);
     log.info("Need manually pay {} RMB for car {}", amount, tenant.getCarNumber());
     return createResponse(payment, PaymentStatus.NEED_WECHAT_PAY);
   }
@@ -126,7 +128,7 @@ public class PaymentService {
       status = rtmapService.payWithPoints(member, parkDetail, needPoints);
     } catch (Exception e) {
       log.error("Call pay API exception", e);
-      sendFailedEmail(tenant, amount);
+      sendFailedEmail(tenant.getEmail(), amount);
       return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
     }
 
@@ -136,22 +138,28 @@ public class PaymentService {
       updateMemberPoints(member, needPoints);
       return createResponse(payment, PaymentStatus.SUCCESS);
     } else {
-      log.warn("Paid for car {} with point failed.", tenant.getCarNumber());
-      sendFailedEmail(tenant, amount);
+      log.warn("Call pay API return unexpected error code: {}, message: {}", status.getCode(), status.getMsg());
+      sendFailedEmail(tenant.getEmail(), amount);
       return createResponse(payment, PaymentStatus.PAY_API_ERROR, "调用缴费API错误");
     }
   }
 
-  private void sendManuallyPayEmail(Tenant tenant, int amount) {
+  private void sendManuallyPayEmail(String email, int amount) {
     String subject = "需要微信手工缴费";
     String content = String.format("请使用微信小程序手工缴费 %d 元。", amount);
-    emailService.sendMail(tenant.getEmail(), subject, content);
+    emailService.sendMail(email, subject, content);
   }
 
-  private void sendFailedEmail(Tenant tenant, int amount) {
+  private void sendFailedEmail(String email, int amount) {
     String subject = "自动缴费失败";
     String content = String.format("Free Park 自动缴费失败，请使用微信小程序手工缴费 %d 元。", amount);
-    emailService.sendMail(tenant.getEmail(), subject, content);
+    emailService.sendMail(email, subject, content);
+  }
+
+  private void sendFailedEmail(String email) {
+    String subject = "自动缴费失败";
+    String content = "Free Park 自动缴费失败，请使用微信小程序手工缴费。";
+    emailService.sendMail(email, subject, content);
   }
 
   private void updateMemberPoints(Member member, int usedPoints) {
