@@ -13,6 +13,7 @@ public class MemberResponse {
   private String memType;
   private String mobile;
   private String name;
+  private Integer points;
   private Boolean enablePay;
   private Boolean enablePoint;
   private LocalDate lastPaidAt;
