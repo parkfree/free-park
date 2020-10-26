@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.chenliang.freepark.service.PaymentUtil.centToPoint;
+import static org.chenliang.freepark.service.PaymentUtil.centToYuan;
+
 @Service
 @Log4j2
 public class PaymentService {
@@ -110,10 +113,10 @@ public class PaymentService {
 
     payment.setAmount(parkingFee.getReceivable());
 
-    int needPoints = calculateNeedPoints(parkDetail);
+    int needPoints = centToPoint(parkDetail.getParkingFee().getFeeNumber() );
 
     if (parkingFee.getFeeNumber() != 0 && member.getPoints() < needPoints) {
-      return cannotPay(tenant, parkingFee.getFeeNumber() / 100, payment);
+      return cannotPay(tenant, centToYuan(parkingFee.getFeeNumber()), payment);
     }
 
     return makePayRequest(tenant, member, parkDetail, payment, needPoints);
@@ -126,7 +129,7 @@ public class PaymentService {
   }
 
   private PaymentResponse makePayRequest(Tenant tenant, Member member, ParkDetail parkDetail, Payment payment, int needPoints) {
-    int amount = parkDetail.getParkingFee().getFeeNumber() / 100;
+    int amount = centToYuan(parkDetail.getParkingFee().getFeeNumber());
     Status status;
     try {
       status = rtmapService.payWithPoints(member, parkDetail, needPoints);
@@ -139,7 +142,7 @@ public class PaymentService {
     if (status.getCode() == 401) {
       log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
       updateTenantTotalAmount(tenant, payment);
-      updateMemberPoints(member, needPoints);
+      updateMember(member, needPoints);
       return createResponse(payment, PaymentStatus.SUCCESS);
     } else {
       log.warn("Call pay API return unexpected error code: {}, message: {}", status.getCode(), status.getMsg());
@@ -166,16 +169,13 @@ public class PaymentService {
     emailService.sendMail(email, subject, content);
   }
 
-  private void updateMemberPoints(Member member, int usedPoints) {
-    if (usedPoints == 0) return;
+  private void updateMember(Member member, int usedPoints) {
+    if (usedPoints != 0) {
+      member.setPoints(member.getPoints() - usedPoints);
+    }
 
     member.setLastPaidAt(LocalDate.now());
-    member.setPoints(member.getPoints() - usedPoints);
     memberRepository.save(member);
-  }
-
-  private int calculateNeedPoints(ParkDetail parkDetail) {
-    return 200 * (parkDetail.getParkingFee().getFeeNumber() / 300);
   }
 
   private void updateTenantTotalAmount(Tenant tenant, Payment payment) {

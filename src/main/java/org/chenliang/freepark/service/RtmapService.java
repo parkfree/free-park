@@ -21,6 +21,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
 
+import static org.chenliang.freepark.service.PaymentUtil.pointToCent;
+
 @Service
 @Log4j2
 public class RtmapService {
@@ -58,7 +60,7 @@ public class RtmapService {
         .mobile(member.getMobile())
         .receivable(parkingFee.getReceivable())
         .score(points)
-        .scoreDeductible(points / 200 * 300)
+        .scoreDeductible(pointToCent(points))
         .scoreMinutes(0)
         .receiptVolume("")
         .receiptDeductible(0)
