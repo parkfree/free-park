@@ -113,7 +113,7 @@ public class PaymentService {
 
     payment.setAmount(parkingFee.getReceivable());
 
-    int needPoints = centToPoint(parkDetail.getParkingFee().getFeeNumber() );
+    int needPoints = centToPoint(parkDetail.getParkingFee().getFeeNumber());
 
     if (parkingFee.getFeeNumber() != 0 && member.getPoints() < needPoints) {
       return cannotPay(tenant, centToYuan(parkingFee.getFeeNumber()), payment);
