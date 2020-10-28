@@ -20,6 +20,8 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     return findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(date, tenant);
   }
 
+  Member findFirstByEnablePayIsTrueAndTenantOrderByPointsDesc(Tenant tenant);
+
   Member findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(LocalDate date, Tenant tenant);
 
   List<Member> findByTenantId(Integer tenantId);
