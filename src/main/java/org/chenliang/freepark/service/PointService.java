@@ -41,8 +41,7 @@ public class PointService {
       pointsResponse = rtmapService.getAccountPoints(member);
     } catch (RtmapApiRequestErrorException ex) {
       member.setPoints(0);
-      log.info("set member {} points to 0", member.getMobile());
-      log.error("get member {} points failed cause by: {}", member.getMobile(), ex.getMessage(), ex);
+      log.error("Set member {} points to 0, get points failed cause by: {},", member.getMobile(), ex.getMessage(), ex);
     }
 
     if (pointsResponse != null) {

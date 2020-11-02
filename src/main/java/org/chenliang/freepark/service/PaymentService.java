@@ -137,8 +137,7 @@ public class PaymentService {
     }
 
     if (status.getCode() == 400) {
-      log.info("Pay for car {} with member {} failed cause by insufficient points", tenant.getCarNumber(), member.getMobile());
-      log.info("refresh all members points, and retry");
+      log.info("Pay for car {} with member {} failed cause by insufficient points, refresh points and repay", tenant.getCarNumber(), member.getMobile());
       pointService.refreshMemberPoint(member.getId());
       return pay(tenant.getId());
     } else if (status.getCode() == 401) {
