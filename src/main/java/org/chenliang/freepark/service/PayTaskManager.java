@@ -88,7 +88,7 @@ public class PayTaskManager {
     if (paymentStatus == PaymentStatus.CAR_NOT_FOUND || paymentStatus == PaymentStatus.NO_AVAILABLE_MEMBER) {
       cancelPayTask(tenant);
     } else if (paymentStatus == PaymentStatus.SUCCESS) {
-      if (memberRepository.findFirstPayableMember(LocalDate.now(), tenant) == null) {
+      if (memberRepository.getBestPayMember(tenant) == null) {
         log.warn("All members for car {} are used, cancel the pay schedule task", tenant.getCarNumber());
         cancelPayTask(tenant);
       }

@@ -1,5 +1,13 @@
 package org.chenliang.freepark.service;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.CheckTask;
 import org.chenliang.freepark.model.entity.Member;
@@ -10,15 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.time.*;
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
-
 @Service
 @Log4j2
 public class CheckTaskManager {
+
   private static final int MAX_CHECK_COUNT = 9;
   private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
 
@@ -43,20 +46,20 @@ public class CheckTaskManager {
     }
 
     CheckTask checkTask = CheckTask.builder()
-        .tenantId(tenant.getId())
-        .createdAt(LocalDateTime.now())
-        .initDelaySeconds(initDelaySeconds)
-        .checkCount(0)
-        .checkCountLimit(MAX_CHECK_COUNT)
-        .nextScheduledAt(LocalDateTime.now().plusSeconds(initDelaySeconds))
-        .periodMinutes((int) CHECK_PERIOD.toMinutes())
-        .build();
+      .tenantId(tenant.getId())
+      .createdAt(LocalDateTime.now())
+      .initDelaySeconds(initDelaySeconds)
+      .checkCount(0)
+      .checkCountLimit(MAX_CHECK_COUNT)
+      .nextScheduledAt(LocalDateTime.now().plusSeconds(initDelaySeconds))
+      .periodMinutes((int) CHECK_PERIOD.toMinutes())
+      .build();
 
     checkTasks.put(tenant.getId(), checkTask);
 
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> check(tenant),
-        Instant.now().plusSeconds(initDelaySeconds),
-        CHECK_PERIOD);
+      Instant.now().plusSeconds(initDelaySeconds),
+      CHECK_PERIOD);
 
     checkTask.setFuture(future);
   }
@@ -78,10 +81,10 @@ public class CheckTaskManager {
 
   private void check(Tenant tenant) {
     updateCheckTaskStatus(tenant);
-    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(), checkTasks.get(tenant.getId()).getCheckCount());
+    log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(),
+      checkTasks.get(tenant.getId()).getCheckCount());
 
-    LocalDate today = LocalDate.now();
-    Member member = memberRepository.findFirstPayableMember(today, tenant);
+    Member member = memberRepository.getBestPayMember(tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the check schedule task.", tenant.getCarNumber());
       cancelCheckTask(tenant);
@@ -137,7 +140,7 @@ public class CheckTaskManager {
       return null;
     } else {
       log.warn("Call park detail API for car {} return error code: {}, message: {}",
-          tenant.getCarNumber(), parkDetail.getCode(), parkDetail.getMsg());
+        tenant.getCarNumber(), parkDetail.getCode(), parkDetail.getMsg());
       return null;
     }
   }

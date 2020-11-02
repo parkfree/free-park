@@ -1,5 +1,8 @@
 package org.chenliang.freepark.service;
 
+import static org.chenliang.freepark.service.PaymentUtil.pointToCent;
+
+import java.util.UUID;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.configuration.FreeParkConfig;
 import org.chenliang.freepark.exception.RtmapApiErrorResponseException;
@@ -18,10 +21,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.UUID;
-
-import static org.chenliang.freepark.service.PaymentUtil.pointToCent;
 
 @Service
 @Log4j2
@@ -97,9 +96,10 @@ public class RtmapService {
       log.error("Request Check in point API error for member {}", member.getMobile(), e);
       throw new RtmapApiRequestErrorException(e);
     }
-    if (status.getCode() != 200) {
+    // 200 is success, 400 is already check in
+    if (status.getCode() != 200 || status.getCode() != 400) {
       log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(), status.getCode(),
-               status.getMsg());
+        status.getMsg());
       throw new RtmapApiErrorResponseException(status.getCode(), status.getMsg());
     }
     log.info("Check in point success for member {}", member.getMobile());

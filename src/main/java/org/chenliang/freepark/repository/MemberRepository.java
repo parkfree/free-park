@@ -1,5 +1,8 @@
 package org.chenliang.freepark.repository;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.springframework.data.domain.Page;
@@ -10,17 +13,23 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Integer> {
-  default Member findFirstPayableMember(LocalDate date, Tenant tenant) {
-    return findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(date, tenant);
+
+  default Member getBestPayMember(Tenant tenant) {
+    return getBestPayMember(tenant, 200);
   }
 
-  Member findFirstByEnablePayIsTrueAndTenantOrderByPointsDesc(Tenant tenant);
+  default Member getBestPayMember(Tenant tenant, int point) {
+    LocalDate today = LocalDate.now();
+    Member member = findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(today, tenant);
+    if (member == null) {
+      member = findFirstByEnablePayIsTrueAndPointsGreaterThanPointAndTenantOrderByPointsDesc(tenant, point);
+    }
+    return member;
+  }
+
+  Member findFirstByEnablePayIsTrueAndPointsGreaterThanPointAndTenantOrderByPointsDesc(Tenant tenant, int point);
 
   Member findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(LocalDate date, Tenant tenant);
 

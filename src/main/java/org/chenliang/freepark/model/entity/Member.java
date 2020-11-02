@@ -47,7 +47,7 @@ public class Member {
     }
   }
 
-  public boolean isPaid() {
+  public boolean isUsedToday() {
     LocalDate today = LocalDate.now();
     return today.getYear() == lastPaidAt.getYear()
       && today.getMonth() == lastPaidAt.getMonth()

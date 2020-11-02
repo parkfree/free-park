@@ -35,6 +35,9 @@ public class PaymentService {
   private RtmapService rtmapService;
 
   @Autowired
+  private PointService pointService;
+
+  @Autowired
   private MemberRepository memberRepository;
 
   @Autowired
@@ -67,7 +70,7 @@ public class PaymentService {
     Payment payment = new Payment();
     payment.setTenant(tenant);
 
-    Member member = getTheBestMember(tenant);
+    Member member = memberRepository.getBestPayMember(tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the pay schedule task", tenant.getCarNumber());
       return createResponse(payment, PaymentStatus.NO_AVAILABLE_MEMBER);
@@ -98,8 +101,9 @@ public class PaymentService {
       return createResponse(payment, PaymentStatus.NO_NEED_TO_PAY);
     }
 
-    if (!member.isPaid() && parkingFee.getMemberDeductible() == 0) {
-      log.info("Member {} doesn't has discount for today. Update its last paid date, and try to pay with new member", member.getMobile());
+    if (!member.isUsedToday() && parkingFee.getMemberDeductible() == 0) {
+      log.info("Member {} doesn't has discount for today. Update its last paid date, and try to pay with new member",
+        member.getMobile());
       member.setLastPaidAt(LocalDate.now());
       memberRepository.save(member);
       savePayment(payment, PaymentStatus.MEMBER_NO_DISCOUNT);
@@ -113,17 +117,6 @@ public class PaymentService {
     }
 
     return makePayRequest(tenant, member, parkDetail, payment, needPoints);
-  }
-
-  private Member getTheBestMember(Tenant tenant) {
-    LocalDate today = LocalDate.now();
-    //找出有会员优惠且积分最高的
-    Member member = memberRepository.findFirstPayableMember(today, tenant);
-    if (member == null) {
-      //找出积分最高的
-      member = memberRepository.findFirstByEnablePayIsTrueAndTenantOrderByPointsDesc(tenant);
-    }
-    return member;
   }
 
   private PaymentResponse cannotPay(Tenant tenant, int amount, Payment payment) {
@@ -143,7 +136,12 @@ public class PaymentService {
       return createResponse(payment, PaymentStatus.PAY_API_ERROR);
     }
 
-    if (status.getCode() == 401) {
+    if (status.getCode() == 400) {
+      log.info("Pay for car {} with member {} failed cause by insufficient points", tenant.getCarNumber(), member.getMobile());
+      log.info("refresh all members points, and retry");
+      pointService.refreshPoint(tenant.getId());
+      return pay(tenant.getId());
+    } else if (status.getCode() == 401) {
       log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
       updateTenantTotalAmount(tenant, payment);
       updateMember(member, needPoints);
