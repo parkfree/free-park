@@ -49,8 +49,6 @@ public class Member {
 
   public boolean isUsedToday() {
     LocalDate today = LocalDate.now();
-    return today.getYear() == lastPaidAt.getYear()
-      && today.getMonth() == lastPaidAt.getMonth()
-      && today.getDayOfMonth() == lastPaidAt.getDayOfMonth();
+    return today.equals(lastPaidAt);
   }
 }
