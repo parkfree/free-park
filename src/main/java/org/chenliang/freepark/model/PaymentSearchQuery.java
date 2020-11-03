@@ -7,6 +7,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
+import static org.chenliang.freepark.repository.PaymentSpecifications.hasCarNumber;
+import static org.chenliang.freepark.repository.PaymentSpecifications.hasMobile;
 import static org.chenliang.freepark.repository.PaymentSpecifications.hasMemberId;
 import static org.chenliang.freepark.repository.PaymentSpecifications.hasStatus;
 import static org.chenliang.freepark.repository.PaymentSpecifications.hasTenantId;
@@ -22,12 +24,16 @@ public class PaymentSearchQuery {
   private LocalDateTime to;
   private Integer tenantId;
   private Integer memberId;
+  private String carNumber;
+  private String mobile;
 
   public Specification<Payment> toSpecification() {
     return Specification.where(hasStatus(status))
         .and(paidAtFrom(from))
         .and(paidAtTo(to))
         .and(hasTenantId(tenantId))
-        .and(hasMemberId(memberId));
+        .and(hasMemberId(memberId))
+        .and(hasCarNumber(carNumber))
+        .and(hasMobile(mobile));
   }
 }

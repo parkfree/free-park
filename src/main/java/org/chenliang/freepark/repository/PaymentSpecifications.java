@@ -26,4 +26,12 @@ public class PaymentSpecifications {
   public static Specification<Payment> hasMemberId(Integer memberId) {
     return memberId == null ? null : (root, query, builder) -> builder.equal(root.join("member").get("id"), memberId);
   }
+
+  public static Specification<Payment> hasCarNumber(String carNumber) {
+    return carNumber == null ? null : (root, query, builder) -> builder.equal(root.join("tenant").get("carNumber"), carNumber);
+  }
+
+  public static Specification<Payment> hasMobile(String mobile) {
+    return mobile == null ? null : (root, query, builder) -> builder.equal(root.join("member").get("mobile"), mobile);
+  }
 }
