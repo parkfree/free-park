@@ -24,12 +24,12 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     LocalDate today = LocalDate.now();
     Member member = findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(today, tenant);
     if (member == null) {
-      member = findFirstByEnablePayIsTrueAndPointsGreaterThanEqualPointAndTenantOrderByPointsDesc(tenant, point);
+      member = findFirstByEnablePayIsTrueAndPointsGreaterThanEqualAndTenantOrderByPointsDesc(point, tenant);
     }
     return member;
   }
 
-  Member findFirstByEnablePayIsTrueAndPointsGreaterThanEqualPointAndTenantOrderByPointsDesc(Tenant tenant, int point);
+  Member findFirstByEnablePayIsTrueAndPointsGreaterThanEqualAndTenantOrderByPointsDesc(int point, Tenant tenant);
 
   Member findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(LocalDate date, Tenant tenant);
 
