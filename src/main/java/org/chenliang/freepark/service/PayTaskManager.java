@@ -1,5 +1,11 @@
 package org.chenliang.freepark.service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.PayTask;
 import org.chenliang.freepark.model.PaymentResponse;
@@ -10,18 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
-
 @Service
 @Log4j2
 public class PayTaskManager {
+
   private static final Duration PAY_PERIOD = Duration.ofMinutes(60);
   private static final int SAFE_PAY_THRESHOLD_MIN = 3;
 
@@ -42,22 +40,20 @@ public class PayTaskManager {
       return;
     }
 
-    Duration initDelay = calculateInitPayDelay(parkTime);
-    log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
+    //Duration initDelay = calculateInitPayDelay(parkTime);
+    //log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
 
     PayTask payTask = PayTask.builder()
-        .tenantId(tenant.getId())
-        .parkAt(parkAtTime)
-        .createdAt(LocalDateTime.now())
-        .initDelaySeconds((int) initDelay.toSeconds())
-        .periodMinutes((int) PAY_PERIOD.toMinutes())
-        .nextScheduledAt(LocalDateTime.now().plus(initDelay))
-        .build();
+      .tenantId(tenant.getId())
+      .parkAt(parkAtTime)
+      .createdAt(LocalDateTime.now())
+      //.initDelaySeconds((int) initDelay.toSeconds())
+      .periodMinutes((int) PAY_PERIOD.toMinutes())
+      //.nextScheduledAt(LocalDateTime.now().plus(initDelay))
+      .build();
     payTasks.put(tenant.getId(), payTask);
 
-    ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
-      pay(tenant);
-    }, Instant.now().plus(initDelay), PAY_PERIOD);
+    ScheduledFuture<?> future = taskScheduler.schedule(() -> pay(tenant), new PayTrigger(parkTime));
 
     payTask.setFuture(future);
   }
