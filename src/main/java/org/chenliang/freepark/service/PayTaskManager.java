@@ -1,8 +1,11 @@
 package org.chenliang.freepark.service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -34,26 +37,23 @@ public class PayTaskManager {
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
 
-  public void schedulePayTask(Tenant tenant, Integer parkTime, LocalDateTime parkAtTime) {
+  public void schedulePayTask(Tenant tenant, long parkAtTimestamp) {
+    String carNumber = tenant.getCarNumber();
     if (payTasks.get(tenant.getId()) != null) {
-      log.info("The pay task for car {} is already scheduled", tenant.getCarNumber());
+      log.info("The pay task for car {} is already scheduled", carNumber);
       return;
     }
 
-    //Duration initDelay = calculateInitPayDelay(parkTime);
-    //log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
-
+    LocalDateTime parkAtTime = Instant.ofEpochMilli(parkAtTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
     PayTask payTask = PayTask.builder()
       .tenantId(tenant.getId())
       .parkAt(parkAtTime)
       .createdAt(LocalDateTime.now())
-      //.initDelaySeconds((int) initDelay.toSeconds())
       .periodMinutes((int) PAY_PERIOD.toMinutes())
-      //.nextScheduledAt(LocalDateTime.now().plus(initDelay))
       .build();
     payTasks.put(tenant.getId(), payTask);
 
-    ScheduledFuture<?> future = taskScheduler.schedule(() -> pay(tenant), new PayTrigger(parkTime));
+    ScheduledFuture<?> future = taskScheduler.schedule(() -> pay(tenant), new PayTrigger(parkAtTimestamp, carNumber, payTask));
 
     payTask.setFuture(future);
   }

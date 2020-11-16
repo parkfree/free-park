@@ -92,7 +92,6 @@ public class CheckTaskManager {
     }
 
     ParkDetail parkDetail = getParkDetail(tenant, member);
-
     if (parkDetail == null) {
       if (checkTasks.get(tenant.getId()).getCheckCount() == MAX_CHECK_COUNT) {
         log.info("Car {} reach the check count limitation: {}", tenant.getCarNumber(), MAX_CHECK_COUNT);
@@ -111,7 +110,7 @@ public class CheckTaskManager {
     LocalDateTime parkAtTime = Instant.ofEpochMilli(parkAtTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
     log.info("Car {} is found, parked at: {}, already parked: {} min", tenant.getCarNumber(), parkAtTime, parkTime);
 
-    payTaskManager.schedulePayTask(tenant, parkTime, parkAtTime);
+    payTaskManager.schedulePayTask(tenant, parkAtTimestamp);
   }
 
   public void cancelCheckTask(Tenant tenant) {

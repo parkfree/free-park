@@ -1,13 +1,16 @@
 package org.chenliang.freepark.service;
 
-import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
+import lombok.extern.slf4j.Slf4j;
+import org.chenliang.freepark.model.PayTask;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.TriggerContext;
 
+@Slf4j
 public class PayTrigger implements Trigger {
-
-  private static final Duration PAY_PERIOD = Duration.ofMinutes(60);
 
   private static final int ONE_HOUR = 60 * 60 * 1000;
 
@@ -15,72 +18,83 @@ public class PayTrigger implements Trigger {
 
   private static final int FORTY_MINUTES = 40 * 60 * 1000;
 
-  private static final int PAY_TASK_DELAY = 5 * 1000;
-
-  private final Integer parkTime;
-
   private int payTime = 0;
 
-  public PayTrigger(Integer parkTime) {
-    this.parkTime = parkTime;
+  private String carNumber;
+
+  private PayTask payTask;
+
+  private int payTimeDelay;
+
+  private long parkAtTimestamp;
+
+  public PayTrigger(long parkAtTimestamp, String carNumber, PayTask payTask) {
+    this.parkAtTimestamp = parkAtTimestamp;
+    this.carNumber = carNumber;
+    this.payTask = payTask;
+    this.payTimeDelay = getDelaySeconds(parkAtTimestamp);
   }
 
   @Override
   public Date nextExecutionTime(TriggerContext triggerContext) {
+    Date lastScheduledDate = triggerContext.lastScheduledExecutionTime();
+    long nextPayTimestamp;
     if (payTime == 0) {
-      return getFirstPayTime();
+      nextPayTimestamp = getFirstPayTimestamp();
     } else if (payTime == 1) {
-      return getSecondPayTime(triggerContext.lastScheduledExecutionTime());
+      nextPayTimestamp = getSecondPayTimestamp(lastScheduledDate);
     } else if (payTime == 2) {
-      return getThirdPayTime(triggerContext.lastScheduledExecutionTime());
+      nextPayTimestamp = getThirdPayTimestamp(lastScheduledDate);
     } else {
-      return new Date(triggerContext.lastScheduledExecutionTime().getTime() + ONE_HOUR);
+      nextPayTimestamp = lastScheduledDate.getTime() + ONE_HOUR;
     }
+    LocalDateTime nextPayDateTime = Instant.ofEpochMilli(nextPayTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
+    payTask.setNextScheduledAt(nextPayDateTime);
+    Date nextPayDate = new Date();
+    nextPayDate.setTime(nextPayTimestamp);
+    log.info("{} next pay will be at date: {}", carNumber, nextPayDate);
+    return nextPayDate;
   }
 
-  private Date getFirstPayTime() {
+  private long getFirstPayTimestamp() {
+    payTime++;
     Date now = new Date();
-    payTime++;
-    if (parkTime >= MARKET_FREE_TIME) {
-      //大于20分钟，马上缴费
-      return new Date(now.getTime() + PAY_TASK_DELAY);
+    if ((now.getTime() - parkAtTimestamp) <= MARKET_FREE_TIME) {
+      return parkAtTimestamp + MARKET_FREE_TIME + payTimeDelay;
     } else {
-      //小于20分钟，等到20分种时缴费
-      return new Date(now.getTime() + MARKET_FREE_TIME - parkTime + PAY_TASK_DELAY);
+      return now.getTime();
     }
   }
 
-  private Date getSecondPayTime(Date lastScheduledExecutionTime) {
+  private long getSecondPayTimestamp(Date lastScheduledDate) {
     payTime++;
-    long time = lastScheduledExecutionTime.getTime();
-    if (parkTime < MARKET_FREE_TIME) {
-      //小于20分钟，在1个小时40分钟后缴费，因此第一次会在20分钟准时缴费
-      time = time + ONE_HOUR + FORTY_MINUTES;
-    } else if (parkTime < ONE_HOUR) {
-      //小于1个小时大于20分钟，在2个小时的时候缴费
-      time = time + ONE_HOUR * 2 - parkTime;
+    Long parkedTime = lastScheduledDate.getTime() - parkAtTimestamp;
+    if (parkedTime <= (ONE_HOUR + FORTY_MINUTES)) {
+      return parkAtTimestamp + ONE_HOUR * 2 + payTimeDelay;
     } else {
-      //大于1个小时，则在后一个小时执行
-      int payPeriod = (int) PAY_PERIOD.toMinutes();
-      long remindTime = payPeriod - parkTime % payPeriod;
-      if (remindTime > MARKET_FREE_TIME) {
-        time = time + remindTime;
+      long durationTime = parkedTime % ONE_HOUR;
+      if (durationTime >= FORTY_MINUTES) {
+        return lastScheduledDate.getTime() + MARKET_FREE_TIME;
       } else {
-        //如果还在免费时间内，则还需要等20分钟到才能缴费
-        time = time + MARKET_FREE_TIME;
+        return lastScheduledDate.getTime() + ONE_HOUR - durationTime + payTimeDelay;
       }
     }
-    return new Date(time);
   }
 
-  private Date getThirdPayTime(Date lastScheduledExecutionTime) {
+  private long getThirdPayTimestamp(Date lastScheduledDate) {
     payTime++;
-    int payPeriod = (int) PAY_PERIOD.toMinutes();
-    long remindTime = payPeriod - parkTime % payPeriod;
-    if (remindTime > MARKET_FREE_TIME) {
-      return new Date(lastScheduledExecutionTime.getTime() + ONE_HOUR);
+    Long remindTime = lastScheduledDate.getTime() - parkAtTimestamp;
+    long durationTime = remindTime % ONE_HOUR;
+    if (durationTime <= payTimeDelay) {
+      return lastScheduledDate.getTime() + ONE_HOUR;
     } else {
-      return new Date(lastScheduledExecutionTime.getTime() + ONE_HOUR - PAY_TASK_DELAY + remindTime);
+      return lastScheduledDate.getTime() + ONE_HOUR - durationTime + payTimeDelay;
     }
+  }
+
+  private int getDelaySeconds(long parkAtTimestamp) {
+    Date date = new Date();
+    date.setTime(parkAtTimestamp);
+    return (60 - date.getSeconds()) * 1000;
   }
 }
