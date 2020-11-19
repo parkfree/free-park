@@ -34,6 +34,6 @@ public class Tenant {
   private LocalDateTime updatedAt;
 
   public boolean isAdmin() {
-    return "admin".equals(role);
+    return "ROLE_ADMIN".equals(role);
   }
 }

@@ -18,7 +18,7 @@ public class PayTrigger implements Trigger {
 
   private static final int FORTY_MINUTES = 40 * 60 * 1000;
 
-  private int payTime = 0;
+  private int payCount = 0;
 
   private String carNumber;
 
@@ -39,11 +39,11 @@ public class PayTrigger implements Trigger {
   public Date nextExecutionTime(TriggerContext triggerContext) {
     Date lastScheduledDate = triggerContext.lastScheduledExecutionTime();
     long nextPayTimestamp;
-    if (payTime == 0) {
+    if (payCount == 0) {
       nextPayTimestamp = getFirstPayTimestamp();
-    } else if (payTime == 1) {
+    } else if (payCount == 1) {
       nextPayTimestamp = getSecondPayTimestamp(lastScheduledDate);
-    } else if (payTime == 2) {
+    } else if (payCount == 2) {
       nextPayTimestamp = getThirdPayTimestamp(lastScheduledDate);
     } else {
       nextPayTimestamp = lastScheduledDate.getTime() + ONE_HOUR;
@@ -53,11 +53,11 @@ public class PayTrigger implements Trigger {
     Date nextPayDate = new Date();
     nextPayDate.setTime(nextPayTimestamp);
     log.info("{} next pay will be at date: {}", carNumber, nextPayDate);
+    payCount++;
     return nextPayDate;
   }
 
   private long getFirstPayTimestamp() {
-    payTime++;
     Date now = new Date();
     if ((now.getTime() - parkAtTimestamp) <= MARKET_FREE_TIME) {
       return parkAtTimestamp + MARKET_FREE_TIME + payTimeDelay;
@@ -67,7 +67,6 @@ public class PayTrigger implements Trigger {
   }
 
   private long getSecondPayTimestamp(Date lastScheduledDate) {
-    payTime++;
     Long parkedTime = lastScheduledDate.getTime() - parkAtTimestamp;
     if (parkedTime <= (ONE_HOUR + FORTY_MINUTES)) {
       return parkAtTimestamp + ONE_HOUR * 2 + payTimeDelay;
@@ -82,7 +81,6 @@ public class PayTrigger implements Trigger {
   }
 
   private long getThirdPayTimestamp(Date lastScheduledDate) {
-    payTime++;
     Long remindTime = lastScheduledDate.getTime() - parkAtTimestamp;
     long durationTime = remindTime % ONE_HOUR;
     if (durationTime <= payTimeDelay) {
