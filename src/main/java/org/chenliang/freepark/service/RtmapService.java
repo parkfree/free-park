@@ -97,7 +97,7 @@ public class RtmapService {
       throw new RtmapApiRequestErrorException(e);
     }
     // 200 is success, 400 is already check in
-    if (status.getCode() != 200 || status.getCode() != 400) {
+    if (status.getCode() != 200 && status.getCode() != 400) {
       log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(), status.getCode(),
         status.getMsg());
       throw new RtmapApiErrorResponseException(status.getCode(), status.getMsg());

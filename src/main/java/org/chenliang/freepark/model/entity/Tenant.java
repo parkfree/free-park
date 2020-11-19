@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "tenants")
 public class Tenant {
+
   public static final String DEFAULT_ROLE = "ROLE_USER";
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,4 +32,8 @@ public class Tenant {
   private LocalDateTime createdAt;
   @UpdateTimestamp
   private LocalDateTime updatedAt;
+
+  public boolean isAdmin() {
+    return "ROLE_ADMIN".equals(role);
+  }
 }
