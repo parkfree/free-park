@@ -2,6 +2,7 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
+import org.chenliang.freepark.exception.RtmapApiException;
 import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.PointsResponse;
@@ -21,15 +22,22 @@ public class PointService {
 
   public void getPoint(int memberId) {
     Member member = memberRepository.findById(memberId)
-      .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
 
-    rtmapService.checkIn(member);
-    PointsResponse pointsResponse = rtmapService.getAccountPoints(member);
-    int oldPoints = member.getPoints();
-    if (oldPoints != pointsResponse.getTotal()) {
-      member.setPoints(pointsResponse.getTotal());
-      memberRepository.save(member);
-      log.info("Update member {} points from {} to {}", member.getMobile(), oldPoints, pointsResponse.getTotal());
+    try {
+      rtmapService.checkIn(member);
+    } catch (RtmapApiException ignore) {
+    }
+
+    try {
+      PointsResponse pointsResponse = rtmapService.getAccountPoints(member);
+      int oldPoints = member.getPoints();
+      if (oldPoints != pointsResponse.getTotal()) {
+        member.setPoints(pointsResponse.getTotal());
+        memberRepository.save(member);
+        log.info("Update member {} points from {} to {}", member.getMobile(), oldPoints, pointsResponse.getTotal());
+      }
+    } catch (RtmapApiException ignored) {
     }
   }
 

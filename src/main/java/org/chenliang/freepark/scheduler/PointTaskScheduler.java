@@ -38,7 +38,6 @@ public class PointTaskScheduler {
       taskScheduler.schedule(() -> {
         try {
           pointService.getPoint(member.getId());
-        } catch (RtmapApiException ignored) {
         } catch (Exception e) {
           log.info("Point task for member {} failed with unexpected exception", member.getMobile(), e);
         }
