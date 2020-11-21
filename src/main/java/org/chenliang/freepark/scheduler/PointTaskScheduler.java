@@ -17,9 +17,6 @@ import java.util.Random;
 @Service
 @Log4j2
 public class PointTaskScheduler {
-
-  public static final int ALLOWED_MAX_POINTS = 2000;
-
   @Autowired
   private PointService pointService;
 
@@ -31,27 +28,21 @@ public class PointTaskScheduler {
 
   @Scheduled(cron = "0 0 8 * * *")
   public void schedulePointsTask() {
-    final List<Member> members = memberRepository.findByEnablePointIsTrue();
+    final List<Member> members = memberRepository.findAllCheckInAllowedMembers();
     Instant now = Instant.now();
     Random random = new Random();
     members.forEach(member -> {
-      if (canGetPoints(member)) {
-        int delaySeconds = random.nextInt(3600 * 9);
-        Instant startTime = now.plusSeconds(delaySeconds);
-        log.info("Scheduled member {} to get checkin point at {}", member.getMobile(), startTime.toString());
-        taskScheduler.schedule(() -> {
-          try {
-            pointService.getPoint(member.getId());
-          } catch (RtmapApiException ignored) {
-          } catch (Exception e) {
-            log.info("Point task for member {} failed with unexpected exception", member.getMobile(), e);
-          }
-        }, startTime);
-      }
+      int delaySeconds = random.nextInt(3600 * 9);
+      Instant startTime = now.plusSeconds(delaySeconds);
+      log.info("Scheduled member {} to get checkin point at {}", member.getMobile(), startTime.toString());
+      taskScheduler.schedule(() -> {
+        try {
+          pointService.getPoint(member.getId());
+        } catch (RtmapApiException ignored) {
+        } catch (Exception e) {
+          log.info("Point task for member {} failed with unexpected exception", member.getMobile(), e);
+        }
+      }, startTime);
     });
-  }
-
-  private boolean canGetPoints(Member member) {
-    return member.getPoints() < ALLOWED_MAX_POINTS || member.getTenant().isAdmin();
   }
 }

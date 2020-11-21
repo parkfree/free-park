@@ -39,7 +39,8 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
 
   boolean existsByIdAndTenantId(Integer id, Integer tenantId);
 
-  List<Member> findByEnablePointIsTrue();
+  @Query("SELECT m FROM Member m join fetch m.tenant t WHERE m.enablePoint = true AND (m.points < 2000 OR t.role = 'ROLE_ADMIN')")
+  List<Member> findAllCheckInAllowedMembers();
 
   @EntityGraph(attributePaths = {"tenant"})
   Page<Member> findAll(Pageable pageable);
