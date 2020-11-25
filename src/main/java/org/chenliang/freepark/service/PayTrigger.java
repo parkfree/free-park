@@ -59,7 +59,7 @@ public class PayTrigger implements Trigger {
 
   private long getFirstPayTimestamp() {
     Date now = new Date();
-    if ((now.getTime() - parkAtTimestamp) <= MARKET_FREE_TIME) {
+    if ((now.getTime() - parkAtTimestamp) <= (MARKET_FREE_TIME + payTimeDelay)) {
       return parkAtTimestamp + MARKET_FREE_TIME + payTimeDelay;
     } else {
       return now.getTime();
