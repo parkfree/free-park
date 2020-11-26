@@ -1,13 +1,14 @@
 package org.chenliang.freepark.service;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import org.chenliang.freepark.model.PayTask;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.TriggerContext;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 @Slf4j
 public class PayTrigger implements Trigger {
@@ -60,7 +61,10 @@ public class PayTrigger implements Trigger {
   private long getFirstPayTimestamp() {
     Date now = new Date();
     if ((now.getTime() - parkAtTimestamp) <= (MARKET_FREE_TIME + payTimeDelay)) {
-      return parkAtTimestamp + MARKET_FREE_TIME + payTimeDelay;
+      long nextPayTimestamp = parkAtTimestamp + MARKET_FREE_TIME + payTimeDelay;
+      long initDelayTime = nextPayTimestamp - now.getTime();
+      payTask.setInitDelaySeconds((int)initDelayTime/1000);
+      return nextPayTimestamp;
     } else {
       return now.getTime();
     }
