@@ -63,7 +63,7 @@ public class PayTrigger implements Trigger {
     if ((now.getTime() - parkAtTimestamp) <= (MARKET_FREE_TIME + payTimeDelay)) {
       long nextPayTimestamp = parkAtTimestamp + MARKET_FREE_TIME + payTimeDelay;
       long initDelayTime = nextPayTimestamp - now.getTime();
-      payTask.setInitDelaySeconds((int)initDelayTime/1000);
+      payTask.setInitDelaySeconds((int) initDelayTime / 1000);
       return nextPayTimestamp;
     } else {
       return now.getTime();
@@ -97,6 +97,10 @@ public class PayTrigger implements Trigger {
   private int getDelaySeconds(long parkAtTimestamp) {
     Date date = new Date();
     date.setTime(parkAtTimestamp);
-    return (60 - date.getSeconds()) * 1000;
+    int balance = 60 - date.getSeconds();
+    if (balance < 20) {
+      balance += 30;
+    }
+    return balance * 1000;
   }
 }
