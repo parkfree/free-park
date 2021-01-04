@@ -35,7 +35,7 @@ public class GetCouponsTaskScheduler {
   private RtmapService rtmapService;
 
   @Scheduled(cron = "${coupon.cron}")
-  public void schedulePointsTask() {
+  public void scheduleGetCouponsTask() {
     final List<Member> members = memberRepository.findAllCheckInAllowedMembers();
     Instant now = Instant.now();
     Random random = new Random();

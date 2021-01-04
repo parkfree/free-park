@@ -29,7 +29,7 @@ logging:
 
 check-cron: "0 0 8 * * MON-FRI"
 coupon:
-  cron: "0 0 6 1 * MON-SUN"
+  cron: "0 0 6 1 * *"
   name: "in卡2小时停车券"
   number: 8
 
