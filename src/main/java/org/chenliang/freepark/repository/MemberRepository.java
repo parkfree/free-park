@@ -16,22 +16,25 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Integer> {
 
-  default Member getBestPayMember(Tenant tenant) {
-    return getBestPayMember(tenant, 200);
+  default Member getMemberWithCoupons(Tenant tenant) {
+    return findFirstByEnablePayIsTrueAndCouponsGreaterThanAndTenantOrderByPointsDesc(0, tenant);
   }
 
-  default Member getBestPayMember(Tenant tenant, int point) {
-    LocalDate today = LocalDate.now();
-    Member member = findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(today, tenant);
+  default Member getMemberWithPoints(Tenant tenant) {
+    return findFirstByEnablePayIsTrueAndPointsGreaterThanEqualAndTenantOrderByPointsDesc(200, tenant);
+  }
+
+  default Member getBestPayMember(Tenant tenant) {
+    Member member = getMemberWithCoupons(tenant);
     if (member == null) {
-      member = findFirstByEnablePayIsTrueAndPointsGreaterThanEqualAndTenantOrderByPointsDesc(point, tenant);
+      member = getMemberWithPoints(tenant);
     }
     return member;
   }
 
   Member findFirstByEnablePayIsTrueAndPointsGreaterThanEqualAndTenantOrderByPointsDesc(int point, Tenant tenant);
 
-  Member findFirstByEnablePayIsTrueAndLastPaidAtBeforeAndTenantOrderByPointsDesc(LocalDate date, Tenant tenant);
+  Member findFirstByEnablePayIsTrueAndCouponsGreaterThanAndTenantOrderByPointsDesc(int number, Tenant tenant);
 
   List<Member> findByTenantId(Integer tenantId);
 
