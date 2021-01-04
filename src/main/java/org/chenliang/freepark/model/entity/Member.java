@@ -29,6 +29,7 @@ public class Member {
   private String mobile;
   private String name;
   private int points;
+  private int coupons;
   private boolean enablePay;
   private boolean enablePoint;
   private LocalDate lastPaidAt;

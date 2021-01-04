@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 @Log4j2
 public class PayTaskManager {
 
-  private static final Duration PAY_PERIOD = Duration.ofMinutes(60);
+  private static final Duration PAY_PERIOD = Duration.ofMinutes(120);
   private static final int SAFE_PAY_THRESHOLD_MIN = 3;
 
   private final Map<Integer, PayTask> payTasks = new ConcurrentHashMap<>();
@@ -32,28 +32,33 @@ public class PayTaskManager {
   private MemberRepository memberRepository;
 
   @Autowired
-  private PaymentService paymentService;
+  private PaymentServiceV2 paymentService;
 
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
 
-  public void schedulePayTask(Tenant tenant, long parkAtTimestamp) {
-    String carNumber = tenant.getCarNumber();
+  public void schedulePayTask(Tenant tenant, Integer parkTime, LocalDateTime parkAtTime) {
     if (payTasks.get(tenant.getId()) != null) {
-      log.info("The pay task for car {} is already scheduled", carNumber);
+      log.info("The pay task for car {} is already scheduled", tenant.getCarNumber());
       return;
     }
 
-    LocalDateTime parkAtTime = Instant.ofEpochMilli(parkAtTimestamp).atZone(ZoneId.systemDefault()).toLocalDateTime();
+    Duration initDelay = calculateInitPayDelay(parkTime);
+    log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
+
     PayTask payTask = PayTask.builder()
       .tenantId(tenant.getId())
       .parkAt(parkAtTime)
       .createdAt(LocalDateTime.now())
+      .initDelaySeconds((int) initDelay.toSeconds())
       .periodMinutes((int) PAY_PERIOD.toMinutes())
+      .nextScheduledAt(LocalDateTime.now().plus(initDelay))
       .build();
     payTasks.put(tenant.getId(), payTask);
 
-    ScheduledFuture<?> future = taskScheduler.schedule(() -> pay(tenant), new PayTrigger(parkAtTimestamp, carNumber, payTask));
+    ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
+      pay(tenant);
+    }, Instant.now().plus(initDelay), PAY_PERIOD);
 
     payTask.setFuture(future);
   }

@@ -16,6 +16,7 @@ import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Payment;
 import org.chenliang.freepark.model.entity.Tenant;
+import org.chenliang.freepark.model.rtmap.CouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Status;
 import org.chenliang.freepark.repository.MemberRepository;
@@ -26,10 +27,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @Log4j2
-public class PaymentService {
+public class PaymentServiceV2 {
 
   @Autowired
   private RtmapService rtmapService;
@@ -48,6 +50,9 @@ public class PaymentService {
 
   @Autowired
   private ModelMapper modelMapper;
+
+  @Autowired
+  private CouponsService couponsService;
 
   @Autowired
   private EmailService emailService;
@@ -71,52 +76,55 @@ public class PaymentService {
     payment.setTenant(tenant);
 
     Member member = memberRepository.getBestPayMember(tenant);
-    if (member == null) {
-      log.warn("No available member for car: {}, cancel the pay schedule task", tenant.getCarNumber());
-      return createResponse(payment, PaymentStatus.NO_AVAILABLE_MEMBER);
-    }
-    payment.setMember(member);
+    if (member != null) {
+      payment.setMember(member);
+      ParkDetail parkDetail;
+      try {
+        parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
+      } catch (Exception e) {
+        log.error("Call park detail API exception", e);
+        sendFailedEmail(tenant.getEmail());
+        return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
+      }
 
-    ParkDetail parkDetail;
-    try {
-      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
-    } catch (Exception e) {
-      log.error("Call park detail API exception", e);
-      sendFailedEmail(tenant.getEmail());
-      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
+      if (parkDetail.getCode() == 400) {
+        log.warn("Car {} is not found when paying", tenant.getCarNumber());
+        return createResponse(payment, PaymentStatus.CAR_NOT_FOUND);
+      } else if (parkDetail.getCode() != 200) {
+        log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(), parkDetail.getMsg());
+        sendFailedEmail(tenant.getEmail());
+        return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
+      }
+
+      ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
+      if (parkingFee.getReceivable() == 0) {
+        log.info("Car {} is already paid", tenant.getCarNumber());
+        return createResponse(payment, PaymentStatus.NO_NEED_TO_PAY);
+      }
+
+      int needPoints = parkDetail.getParkingFee().getFeeNumber();
+      if (needPoints > 300) {
+        Coupon coupon = couponsService.getOneCoupon(member);
+        payment.setQrCode(coupon.getQrCode());
+        payment.setFacePrice(coupon.getFacePrice());
+        needPoints = needPoints - coupon.getFacePrice();
+      }
+
+      payment.setAmount(parkingFee.getReceivable());
+      if (needPoints > 0) {
+        needPoints = centToPoint(needPoints);
+      } else {
+        needPoints = 0;
+      }
+
+      if (member.getPoints() < needPoints) {
+        return cannotPay(tenant, centToYuan(parkingFee.getFeeNumber()), payment);
+      }
+
+      return makePayRequest(tenant, member, parkDetail, payment, needPoints);
     }
 
-    if (parkDetail.getCode() == 400) {
-      log.warn("Car {} is not found when paying", tenant.getCarNumber());
-      return createResponse(payment, PaymentStatus.CAR_NOT_FOUND);
-    } else if (parkDetail.getCode() != 200) {
-      log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(), parkDetail.getMsg());
-      sendFailedEmail(tenant.getEmail());
-      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
-    }
-
-    ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
-    if (parkingFee.getReceivable() == 0) {
-      log.info("Car {} is already paid", tenant.getCarNumber());
-      return createResponse(payment, PaymentStatus.NO_NEED_TO_PAY);
-    }
-
-    if (!member.isUsedToday() && parkingFee.getMemberDeductible() == 0) {
-      log.info("Member {} doesn't has discount for today. Update its last paid date, and try to pay with new member",
-        member.getMobile());
-      member.setLastPaidAt(LocalDate.now());
-      memberRepository.save(member);
-      savePayment(payment, PaymentStatus.MEMBER_NO_DISCOUNT);
-      return pay(tenantId);
-    }
-
-    payment.setAmount(parkingFee.getReceivable());
-    int needPoints = centToPoint(parkDetail.getParkingFee().getFeeNumber());
-    if (parkingFee.getFeeNumber() != 0 && member.getPoints() < needPoints) {
-      return cannotPay(tenant, centToYuan(parkingFee.getFeeNumber()), payment);
-    }
-
-    return makePayRequest(tenant, member, parkDetail, payment, needPoints);
+    return null;
   }
 
   private PaymentResponse cannotPay(Tenant tenant, int amount, Payment payment) {
@@ -137,13 +145,14 @@ public class PaymentService {
     }
 
     if (status.getCode() == 400) {
-      log.info("Pay for car {} with member {} failed cause by insufficient points, refresh points and repay", tenant.getCarNumber(), member.getMobile());
+      log.info("Pay for car {} with member {} failed cause by insufficient points, refresh points and repay",
+        tenant.getCarNumber(), member.getMobile());
       pointService.refreshMemberPoint(member.getId());
       return pay(tenant.getId());
     } else if (status.getCode() == 401) {
       log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
       updateTenantTotalAmount(tenant, payment);
-      updateMember(member, needPoints);
+      updateMember(member, needPoints, payment);
       return createResponse(payment, PaymentStatus.SUCCESS);
     } else {
       log.warn("Call pay API return unexpected error code: {}, message: {}", status.getCode(), status.getMsg());
@@ -170,9 +179,13 @@ public class PaymentService {
     emailService.sendMail(email, subject, content);
   }
 
-  private void updateMember(Member member, int usedPoints) {
+  private void updateMember(Member member, int usedPoints, Payment payment) {
     if (usedPoints != 0) {
       member.setPoints(member.getPoints() - usedPoints);
+    }
+
+    if (!StringUtils.isEmpty(payment.getQrCode())) {
+      member.setCoupons(member.getCoupons() - 1);
     }
 
     member.setLastPaidAt(LocalDate.now());

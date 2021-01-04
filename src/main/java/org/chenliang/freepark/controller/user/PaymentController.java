@@ -3,6 +3,7 @@ package org.chenliang.freepark.controller.user;
 import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.service.PaymentService;
+import org.chenliang.freepark.service.PaymentServiceV2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +15,7 @@ import java.util.List;
 @RestController
 public class PaymentController {
   @Autowired
-  private PaymentService paymentService;
+  private PaymentServiceV2 paymentService;
 
   @PostMapping("/payments")
   public PaymentResponse pay(@AuthenticationPrincipal Tenant tenant) {
