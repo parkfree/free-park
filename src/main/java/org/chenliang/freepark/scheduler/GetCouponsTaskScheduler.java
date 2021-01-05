@@ -36,13 +36,13 @@ public class GetCouponsTaskScheduler {
 
   @Scheduled(cron = "${coupon.cron}")
   public void scheduleGetCouponsTask() {
-    final List<Member> members = memberRepository.findAllCheckInAllowedMembers();
+    final List<Member> members = memberRepository.findAll();
     Instant now = Instant.now();
     Random random = new Random();
 
     final int productId = getProductId(members.get(0));
     for (Member member : members) {
-      int delaySeconds = random.nextInt(10);
+      int delaySeconds = random.nextInt(3600 * 2);
       Instant startTime = now.plusSeconds(delaySeconds);
       log.info("Scheduled member {} to buy coupons at {}", member.getMobile(), startTime.toString());
       taskScheduler.schedule(() -> {
