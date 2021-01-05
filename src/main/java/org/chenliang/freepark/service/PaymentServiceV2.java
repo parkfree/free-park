@@ -102,21 +102,19 @@ public class PaymentServiceV2 {
         return createResponse(payment, PaymentStatus.NO_NEED_TO_PAY);
       }
 
-      int needPoints = parkDetail.getParkingFee().getFeeNumber();
-      if (needPoints > 300 && member.getCoupons() > 0) {
+      int feeNumber = parkDetail.getParkingFee().getFeeNumber();
+      if (feeNumber > 300 && member.getCoupons() > 0) {
         Coupon coupon = couponsService.getOneCoupon(member);
         payment.setQrCode(coupon.getQrCode());
         payment.setFacePrice(coupon.getFacePrice());
-        needPoints = needPoints - coupon.getFacePrice();
+        feeNumber = feeNumber - coupon.getFacePrice();
       }
 
       payment.setAmount(parkingFee.getReceivable());
-      if (needPoints > 0) {
-        needPoints = centToPoint(needPoints);
-      } else {
-        needPoints = 0;
+      int needPoints = 0;
+      if (feeNumber > 0) {
+        needPoints = centToPoint(feeNumber);
       }
-
       if (member.getPoints() < needPoints) {
         return cannotPay(tenant, centToYuan(parkingFee.getFeeNumber()), payment);
       }
