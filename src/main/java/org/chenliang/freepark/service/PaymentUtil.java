@@ -1,7 +1,7 @@
 package org.chenliang.freepark.service;
 
 public class PaymentUtil {
-  private static final int CENT_PER_HOUR = 300;
+  public static final int CENT_PER_HOUR = 300;
   private static final int POINT_PER_HOUR = 200;
   private static final int CENT_PER_YUAN = 100;
 

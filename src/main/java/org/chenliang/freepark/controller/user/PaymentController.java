@@ -2,7 +2,6 @@ package org.chenliang.freepark.controller.user;
 
 import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.entity.Tenant;
-import org.chenliang.freepark.service.PaymentService;
 import org.chenliang.freepark.service.PaymentServiceV2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

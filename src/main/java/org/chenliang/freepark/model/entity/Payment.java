@@ -36,8 +36,4 @@ public class Payment {
 
   @UpdateTimestamp
   private LocalDateTime updatedAt;
-
-  private String qrCode;
-
-  private int facePrice;
 }
