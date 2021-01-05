@@ -103,7 +103,7 @@ public class PaymentServiceV2 {
       }
 
       int needPoints = parkDetail.getParkingFee().getFeeNumber();
-      if (needPoints > 300) {
+      if (needPoints > 300 && member.getCoupons() > 0) {
         Coupon coupon = couponsService.getOneCoupon(member);
         payment.setQrCode(coupon.getQrCode());
         payment.setFacePrice(coupon.getFacePrice());
