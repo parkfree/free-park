@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Random;
 import lombok.extern.slf4j.Slf4j;
+import org.chenliang.freepark.exception.RtmapApiException;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.ProductsResponse;
 import org.chenliang.freepark.model.rtmap.ProductsResponse.Product;
@@ -50,10 +51,9 @@ public class GetCouponsTaskScheduler {
           rtmapService.buy(member, productId, couponNum);
           member.setCoupons(couponNum);
           memberRepository.save(member);
+        } catch (RtmapApiException ignored) {
         } catch (Exception e) {
           log.info("Get coupons task for member {} failed with unexpected exception", member.getMobile(), e);
-          member.setCoupons(0);
-          memberRepository.save(member);
         }
       }, startTime);
     }
