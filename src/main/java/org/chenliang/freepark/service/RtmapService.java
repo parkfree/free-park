@@ -200,7 +200,7 @@ public class RtmapService {
       throw new RtmapApiErrorResponseException(response.getCode(), response.getMsg());
     }
 
-    log.info("Successfully get coupons {}", response);
+    log.info("Successfully get coupon list, coupon count: {}", response.getData().getCouponList().size());
     return response;
   }
 
