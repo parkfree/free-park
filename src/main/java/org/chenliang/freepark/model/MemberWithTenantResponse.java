@@ -16,6 +16,7 @@ public class MemberWithTenantResponse {
   private String mobile;
   private String name;
   private Integer points;
+  private Integer coupons;
   private Boolean enablePay;
   private Boolean enablePoint;
   private LocalDate lastPaidAt;
