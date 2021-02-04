@@ -1,0 +1,18 @@
+server:
+  port: 80
+
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:freepark
+    data: classpath:local_mysql_data.sql
+    username: root
+    password: root
+  jpa:
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: update
+
+freepark:
+  endpoint: "https://appsmall.rtmap.com"
