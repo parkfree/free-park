@@ -19,7 +19,7 @@ public class CouponsController {
 
   @PostMapping("/coupons")
   public ResponseEntity<Void> buyCoupons(@AuthenticationPrincipal Tenant tenant) {
-    couponsService.buyCoupons(tenant);
+    couponsService.buyCoupons(tenant, 10);
     return ResponseEntity.ok().build();
   }
 }

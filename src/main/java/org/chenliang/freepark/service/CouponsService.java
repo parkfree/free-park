@@ -45,18 +45,18 @@ public class CouponsService {
         }
     }
 
-    public void buyCoupons(Tenant tenant) {
+    public void buyCoupons(Tenant tenant, int delayBound) {
         List<Member> members = memberRepository.findByTenantId(tenant.getId());
-        buyCoupons(members);
+        buyCoupons(members, delayBound);
     }
 
-    public void buyCoupons(List<Member> members) {
+    public void buyCoupons(List<Member> members, int delayBound) {
         Instant now = Instant.now();
         Random random = new Random();
 
         final int productId = getProductId(members.get(0));
         for (Member member : members) {
-            int delaySeconds = random.nextInt(3600 * 2);
+            int delaySeconds = random.nextInt(Integer.max(delayBound, 1));
             Instant startTime = now.plusSeconds(delaySeconds);
             log.info("Scheduled member {} to buy coupons at {}", member.getMobile(), startTime.toString());
             taskScheduler.schedule(() -> {
