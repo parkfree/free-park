@@ -18,10 +18,8 @@ import org.chenliang.freepark.model.rtmap.Status;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
@@ -38,6 +36,7 @@ public class RtmapService {
 
   public static final String PARK_DETAIL_URI = "/app-park/parkingFee/getDetailByCarNumber?wxAppId={wxAppId}" +
       "&openid={openid}&carNumber={carNumber}&userId={userId}&memType={memType}";
+  public static final String PAY_URI = "/app-park/payParkingFee";
 
   public RtmapService(RestTemplate client, FreeParkConfig config) {
     this.client = client;
@@ -67,8 +66,7 @@ public class RtmapService {
     return parkDetail;
   }
 
-  @Retryable(value = RestClientException.class, maxAttempts = 2)
-  public Status payWithPoints(Member member, ParkDetail parkDetail, int points, Coupon coupon) {
+  public void payParkingFee(Member member, ParkDetail parkDetail, int points, Coupon coupon) {
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
     Payment.PaymentBuilder paymentBuilder = Payment.builder()
                                                    .wxAppId(config.getWxAppId())
@@ -99,7 +97,18 @@ public class RtmapService {
 
     HttpEntity<Payment> request = new HttpEntity<>(payment, createHeaders(member));
 
-    return client.exchange(config.getUris().get("pay"), HttpMethod.POST, request, Status.class).getBody();
+    Status status;
+    try {
+      status = client.exchange(PAY_URI, HttpMethod.POST, request, Status.class).getBody();
+    } catch (Exception e) {
+      log.error("Call pay API error", e);
+      throw new RtmapApiRequestErrorException(e);
+    }
+
+    if (status.getCode() != 401) {
+      log.warn("Call pay API return error code: {}, message: {}", status.getCode(), status.getMsg());
+      throw new RtmapApiErrorResponseException(status.getCode(), status.getMsg());
+    }
   }
 
   @Retryable(value = RtmapApiRequestErrorException.class, maxAttempts = 2)

@@ -3,6 +3,7 @@ package org.chenliang.freepark.service;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.exception.RtmapApiErrorResponseException;
+import org.chenliang.freepark.exception.RtmapApiException;
 import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentSearchQuery;
@@ -12,7 +13,6 @@ import org.chenliang.freepark.model.entity.Payment;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.model.rtmap.CouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
-import org.chenliang.freepark.model.rtmap.Status;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.repository.PaymentRepository;
 import org.chenliang.freepark.repository.TenantRepository;
@@ -139,30 +139,18 @@ public class PaymentServiceV2 {
   private PaymentResponse makePayRequest(Tenant tenant, Member member, ParkDetail parkDetail, Payment payment,
                                          int needPoints, Coupon coupon) {
     int amount = centToYuan(parkDetail.getParkingFee().getFeeNumber());
-    Status status;
     try {
-      status = rtmapService.payWithPoints(member, parkDetail, needPoints, coupon);
-    } catch (Exception e) {
-      log.error("Call pay API exception", e);
+      rtmapService.payParkingFee(member, parkDetail, needPoints, coupon);
+    } catch (RtmapApiException e) {
+      // TODO: special handle 400 error code, this means either insufficient points, or coupon count is not correct.
       sendFailedEmail(tenant.getEmail(), amount);
       return createResponse(payment, PaymentStatus.PAY_API_ERROR);
     }
 
-    if (status.getCode() == 400) {
-      log.info("Pay for car {} with member {} failed cause by insufficient points, refresh points and repay",
-               tenant.getCarNumber(), member.getMobile());
-      pointService.refreshMemberPoint(member.getId());
-      return pay(tenant.getId());
-    } else if (status.getCode() == 401) {
-      log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
-      updateTenantTotalAmount(tenant, payment);
-      updateMember(member, needPoints, coupon);
-      return createResponse(payment, PaymentStatus.SUCCESS);
-    } else {
-      log.warn("Call pay API return unexpected error code: {}, message: {}", status.getCode(), status.getMsg());
-      sendFailedEmail(tenant.getEmail(), amount);
-      return createResponse(payment, PaymentStatus.PAY_API_ERROR);
-    }
+    log.info("Successfully paid car {} with member {}", tenant.getCarNumber(), member.getMobile());
+    updateTenantTotalAmount(tenant, payment);
+    updateMember(member, needPoints, coupon);
+    return createResponse(payment, PaymentStatus.SUCCESS);
   }
 
   private void sendManuallyPayEmail(String email, int amount) {
