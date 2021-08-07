@@ -36,48 +36,63 @@ public class RtmapService {
   private final RestTemplate client;
   private final FreeParkConfig config;
 
+  public static final String PARK_DETAIL_URI = "/app-park/parkingFee/getDetailByCarNumber?wxAppId={wxAppId}" +
+      "&openid={openid}&carNumber={carNumber}&userId={userId}&memType={memType}";
+
   public RtmapService(RestTemplate client, FreeParkConfig config) {
     this.client = client;
     this.config = config;
   }
 
-  @Retryable(value = RestClientException.class, maxAttempts = 2)
   public ParkDetail getParkDetail(Member member, String carNumber) {
     HttpHeaders httpHeaders = createHeaders(member);
     HttpEntity<Void> request = new HttpEntity<>(httpHeaders);
 
-    ResponseEntity<ParkDetail> response = client.exchange(config.getUris().get("parkDetail"), HttpMethod.GET, request,
-                                                          ParkDetail.class, config.getWxAppId(), member.getOpenId(),
-                                                          carNumber, member.getUserId(), member.getMemType());
-    return response.getBody();
+    ParkDetail parkDetail;
+    try {
+      parkDetail = client.exchange(PARK_DETAIL_URI, HttpMethod.GET, request, ParkDetail.class, config.getWxAppId(),
+                                   member.getOpenId(), carNumber, member.getUserId(), member.getMemType())
+                         .getBody();
+    } catch (Exception e) {
+      log.error("Call park detail API error for car {}", carNumber, e);
+      throw new RtmapApiRequestErrorException(e);
+    }
+
+    if (parkDetail.getCode() != 200) {
+      log.warn("Call park detail API for car {} return error code: {}, message: {}",
+               carNumber, parkDetail.getCode(), parkDetail.getMsg());
+      throw new RtmapApiErrorResponseException(parkDetail.getCode(), parkDetail.getMsg());
+    }
+
+    return parkDetail;
   }
 
   @Retryable(value = RestClientException.class, maxAttempts = 2)
   public Status payWithPoints(Member member, ParkDetail parkDetail, int points, Coupon coupon) {
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
     Payment.PaymentBuilder paymentBuilder = Payment.builder()
-        .wxAppId(config.getWxAppId())
-        .openid(member.getOpenId())
-        .carNumber(parkingFee.getCarNumber())
-        .cardName(member.getMemType())
-        .userId(member.getUserId())
-        .marketOrderNumber(parkingFee.getMarketOrderNumber())
-        .mobile(member.getMobile())
-        .receivable(parkingFee.getReceivable())
-        .score(points)
-        .scoreDeductible(pointToCent(points))
-        .scoreMinutes(0)
-        .receiptMinutes(0)
-        .memberDeductible(parkingFee.getMemberDeductible())
-        .memberMinutes(0)
-        .fullDeductible(0)
-        .fullMinutes(0)
-        .feeNumber(0)
-        .formId(randomHexHash());
+                                                   .wxAppId(config.getWxAppId())
+                                                   .openid(member.getOpenId())
+                                                   .carNumber(parkingFee.getCarNumber())
+                                                   .cardName(member.getMemType())
+                                                   .userId(member.getUserId())
+                                                   .marketOrderNumber(parkingFee.getMarketOrderNumber())
+                                                   .mobile(member.getMobile())
+                                                   .receivable(parkingFee.getReceivable())
+                                                   .score(points)
+                                                   .scoreDeductible(pointToCent(points))
+                                                   .scoreMinutes(0)
+                                                   .receiptMinutes(0)
+                                                   .memberDeductible(parkingFee.getMemberDeductible())
+                                                   .memberMinutes(0)
+                                                   .fullDeductible(0)
+                                                   .fullMinutes(0)
+                                                   .feeNumber(0)
+                                                   .formId(randomHexHash());
 
     if (coupon != null) {
       paymentBuilder.receiptVolume(coupon.getQrCode())
-          .receiptDeductible(coupon.getFacePrice());
+                    .receiptDeductible(coupon.getFacePrice());
     }
 
     Payment payment = paymentBuilder.build();
@@ -90,12 +105,12 @@ public class RtmapService {
   @Retryable(value = RtmapApiRequestErrorException.class, maxAttempts = 2)
   public void checkIn(Member member) {
     final CheckInRequest checkInRequest = CheckInRequest.builder()
-        .openid(member.getOpenId())
-        .channelId(1001)
-        .marketId(MARKET_ID)
-        .cardNo(member.getUserId())
-        .mobile(member.getMobile())
-        .build();
+                                                        .openid(member.getOpenId())
+                                                        .channelId(1001)
+                                                        .marketId(MARKET_ID)
+                                                        .cardNo(member.getUserId())
+                                                        .mobile(member.getMobile())
+                                                        .build();
 
     HttpEntity<CheckInRequest> request = new HttpEntity<>(checkInRequest, createHeaders(member));
 
@@ -158,14 +173,14 @@ public class RtmapService {
 
   public void buy(Member member, int productId, int number) {
     final BuyRequest buyRequest = BuyRequest.builder()
-        .portalId(MARKET_ID)
-        .openId(member.getOpenId())
-        .appId(config.getWxAppId())
-        .productId(productId)
-        .cid(member.getUserId())
-        .channelId(1035)
-        .num(number)
-        .build();
+                                            .portalId(MARKET_ID)
+                                            .openId(member.getOpenId())
+                                            .appId(config.getWxAppId())
+                                            .productId(productId)
+                                            .cid(member.getUserId())
+                                            .channelId(1035)
+                                            .num(number)
+                                            .build();
 
     BuyResponse response;
     try {

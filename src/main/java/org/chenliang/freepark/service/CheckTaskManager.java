@@ -91,8 +91,10 @@ public class CheckTaskManager {
       return;
     }
 
-    ParkDetail parkDetail = getParkDetail(tenant, member);
-    if (parkDetail == null) {
+    ParkDetail parkDetail;
+    try {
+      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
+    } catch (Exception e) {
       if (checkTasks.get(tenant.getId()).getCheckCount() == MAX_CHECK_COUNT) {
         log.info("Car {} reach the check count limitation: {}", tenant.getCarNumber(), MAX_CHECK_COUNT);
         cancelCheckTask(tenant);
@@ -120,27 +122,6 @@ public class CheckTaskManager {
       log.info("Check task for car {} is canceled", tenant.getCarNumber());
     } else {
       log.error("Cancel check task for car {} failed", tenant.getCarNumber());
-    }
-  }
-
-  private ParkDetail getParkDetail(Tenant tenant, Member member) {
-    ParkDetail parkDetail;
-    try {
-      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
-    } catch (Exception e) {
-      log.error("Call park detail API error", e);
-      return null;
-    }
-
-    if (parkDetail.getCode() == 200) {
-      return parkDetail;
-    } else if (parkDetail.getCode() == 400) {
-      log.info("Car {} is not parked: {}", tenant.getCarNumber(), parkDetail.getMsg());
-      return null;
-    } else {
-      log.warn("Call park detail API for car {} return error code: {}, message: {}",
-        tenant.getCarNumber(), parkDetail.getCode(), parkDetail.getMsg());
-      return null;
     }
   }
 }

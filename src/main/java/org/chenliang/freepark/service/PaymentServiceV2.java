@@ -2,6 +2,8 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
+import org.chenliang.freepark.exception.RtmapApiErrorResponseException;
+import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentSearchQuery;
 import org.chenliang.freepark.model.PaymentStatus;
@@ -87,19 +89,17 @@ public class PaymentServiceV2 {
     ParkDetail parkDetail;
     try {
       parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
-    } catch (Exception e) {
-      log.error("Call park detail API exception", e);
+    } catch (RtmapApiRequestErrorException e) {
       sendFailedEmail(tenant.getEmail());
       return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
-    }
-
-    if (parkDetail.getCode() == 400) {
-      log.warn("Car {} is not found when paying", tenant.getCarNumber());
-      return createResponse(payment, PaymentStatus.CAR_NOT_FOUND);
-    } else if (parkDetail.getCode() != 200) {
-      log.warn("Call park detail API return unexpected error code: {}, message: {}", parkDetail.getCode(), parkDetail.getMsg());
-      sendFailedEmail(tenant.getEmail());
-      return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
+    } catch (RtmapApiErrorResponseException e) {
+      if (e.getCode() == 400) {
+        log.warn("Car {} is not found when paying", tenant.getCarNumber());
+        return createResponse(payment, PaymentStatus.CAR_NOT_FOUND);
+      } else {
+        sendFailedEmail(tenant.getEmail());
+        return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
+      }
     }
 
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
@@ -219,9 +219,9 @@ public class PaymentServiceV2 {
     LocalDateTime from = today.atStartOfDay();
     LocalDateTime to = today.plusDays(1).atStartOfDay();
     return paymentRepository.getByTenantIdAndPaidAtBetween(tenant.getId(), from, to)
-        .stream()
-        .map(payment -> modelMapper.map(payment, PaymentResponse.class))
-        .collect(Collectors.toList());
+                            .stream()
+                            .map(payment -> modelMapper.map(payment, PaymentResponse.class))
+                            .collect(Collectors.toList());
   }
 
   public Page<Payment> getPaymentsPage(Pageable pageable, PaymentSearchQuery searchQuery) {
