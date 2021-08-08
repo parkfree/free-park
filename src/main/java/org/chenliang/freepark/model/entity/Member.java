@@ -11,6 +11,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.Table;
 import lombok.Data;
+import org.chenliang.freepark.service.UnitUtil;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -48,8 +49,7 @@ public class Member {
     }
   }
 
-  public boolean isUsedToday() {
-    LocalDate today = LocalDate.now();
-    return today.equals(lastPaidAt);
+  public int affordableParkingHour() {
+    return UnitUtil.couponToHour(coupons) + UnitUtil.pointToHour(points);
   }
 }

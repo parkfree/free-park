@@ -46,6 +46,13 @@ public class CouponsService {
     }
   }
 
+  public List<Coupon> updateAndGetCoupons(Member member) {
+    List<Coupon> coupons = getCurrentMonthParkingCoupons(member);
+    member.setCoupons(coupons.size());
+    memberRepository.save(member);
+    return coupons;
+  }
+
   public List<Coupon> getCurrentMonthParkingCoupons(Member member) {
     return rtmapService.getAccountCoupons(member).getData().getCouponList()
                        .stream()

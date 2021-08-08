@@ -5,12 +5,12 @@ import org.chenliang.freepark.configuration.FreeParkConfig;
 import org.chenliang.freepark.exception.RtmapApiErrorResponseException;
 import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.entity.Member;
-import org.chenliang.freepark.model.rtmap.BuyRequest;
 import org.chenliang.freepark.model.rtmap.BuyCouponResponse;
+import org.chenliang.freepark.model.rtmap.BuyRequest;
 import org.chenliang.freepark.model.rtmap.CheckInRequest;
+import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse;
 import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
-import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Payment;
 import org.chenliang.freepark.model.rtmap.PointsResponse;
 import org.chenliang.freepark.model.rtmap.ProductsResponse;
@@ -22,9 +22,11 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import static org.chenliang.freepark.service.PaymentUtil.pointToCent;
+import static org.chenliang.freepark.service.UnitUtil.pointToCent;
 
 @Service
 @Log4j2
@@ -71,34 +73,33 @@ public class RtmapService {
     return parkDetail;
   }
 
-  public void payParkingFee(Member member, ParkDetail parkDetail, int points, Coupon coupon) {
+  public void payParkingFee(Member member, ParkDetail parkDetail, int points, List<Coupon> coupons) {
+    String receiptVolume = coupons.stream().map(Coupon::getQrCode).collect(Collectors.joining(","));
+    int receiptDeductible = coupons.stream().mapToInt(Coupon::getFacePrice).sum();
     ParkDetail.ParkingFee parkingFee = parkDetail.getParkingFee();
-    Payment.PaymentBuilder paymentBuilder = Payment.builder()
-                                                   .wxAppId(config.getWxAppId())
-                                                   .openid(member.getOpenId())
-                                                   .carNumber(parkingFee.getCarNumber())
-                                                   .cardName(member.getMemType())
-                                                   .userId(member.getUserId())
-                                                   .marketOrderNumber(parkingFee.getMarketOrderNumber())
-                                                   .mobile(member.getMobile())
-                                                   .receivable(parkingFee.getReceivable())
-                                                   .score(points)
-                                                   .scoreDeductible(pointToCent(points))
-                                                   .scoreMinutes(0)
-                                                   .receiptMinutes(0)
-                                                   .memberDeductible(parkingFee.getMemberDeductible())
-                                                   .memberMinutes(0)
-                                                   .fullDeductible(0)
-                                                   .fullMinutes(0)
-                                                   .feeNumber(0)
-                                                   .formId(randomHexHash());
 
-    if (coupon != null) {
-      paymentBuilder.receiptVolume(coupon.getQrCode())
-                    .receiptDeductible(coupon.getFacePrice());
-    }
-
-    Payment payment = paymentBuilder.build();
+    Payment payment = Payment.builder()
+                             .wxAppId(config.getWxAppId())
+                             .openid(member.getOpenId())
+                             .carNumber(parkingFee.getCarNumber())
+                             .cardName(member.getMemType())
+                             .userId(member.getUserId())
+                             .marketOrderNumber(parkingFee.getMarketOrderNumber())
+                             .mobile(member.getMobile())
+                             .receivable(parkingFee.getReceivable())
+                             .score(points)
+                             .scoreDeductible(pointToCent(points))
+                             .scoreMinutes(0)
+                             .receiptMinutes(0)
+                             .memberDeductible(parkingFee.getMemberDeductible())
+                             .memberMinutes(0)
+                             .fullDeductible(0)
+                             .fullMinutes(0)
+                             .feeNumber(0)
+                             .formId(randomHexHash())
+                             .receiptVolume(receiptVolume)
+                             .receiptDeductible(receiptDeductible)
+                             .build();
 
     HttpEntity<Payment> request = new HttpEntity<>(payment, createHeaders(member));
 

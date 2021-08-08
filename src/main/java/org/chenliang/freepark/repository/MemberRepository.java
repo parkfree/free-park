@@ -38,6 +38,8 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
 
   List<Member> findByTenantId(Integer tenantId);
 
+  List<Member> findByTenantIdAndEnablePayIsTrue(Integer tenantId);
+
   Optional<Member> findFirstByIdAndTenantId(Integer id, Integer tenantId);
 
   boolean existsByIdAndTenantId(Integer id, Integer tenantId);

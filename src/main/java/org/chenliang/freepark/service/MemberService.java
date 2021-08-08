@@ -10,6 +10,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
+
 @Service
 public class MemberService {
 
@@ -28,10 +30,18 @@ public class MemberService {
 
   public MemberResponse updateMember(Integer id, MemberRequest memberRequest, Tenant tenant) {
     Member member = memberRepository.findFirstByIdAndTenantId(id, tenant.getId())
-      .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+                                    .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
     setMemberFields(memberRequest, member);
     member.setTenant(tenant);
     return modelMapper.map(memberRepository.save(member), MemberResponse.class);
+  }
+
+  public Member getBestMemberForPayment(Tenant tenant) {
+    return memberRepository.findByTenantIdAndEnablePayIsTrue(tenant.getId())
+                           .stream()
+                           .filter(member -> member.getCoupons() > 0 || member.getPoints() >= UnitUtil.POINT_PER_HOUR)
+                           .max(Comparator.comparingInt(Member::affordableParkingHour))
+                           .orElse(null);
   }
 
   private void setMemberFields(MemberRequest memberRequest, Member member) {
