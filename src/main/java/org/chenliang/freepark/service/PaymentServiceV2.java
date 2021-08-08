@@ -40,9 +40,6 @@ public class PaymentServiceV2 {
   private RtmapService rtmapService;
 
   @Autowired
-  private PointService pointService;
-
-  @Autowired
   private MemberRepository memberRepository;
 
   @Autowired
@@ -93,7 +90,7 @@ public class PaymentServiceV2 {
       sendFailedEmail(tenant.getEmail());
       return createResponse(payment, PaymentStatus.PARK_DETAIL_API_ERROR);
     } catch (RtmapApiErrorResponseException e) {
-      if (e.getCode() == 400) {
+      if (e.getCode() == ParkDetail.CAR_NOT_FOUND_CODE) {
         log.warn("Car {} is not found when paying", tenant.getCarNumber());
         return createResponse(payment, PaymentStatus.CAR_NOT_FOUND);
       } else {

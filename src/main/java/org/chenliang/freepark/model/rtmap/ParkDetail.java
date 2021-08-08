@@ -5,6 +5,9 @@ import lombok.experimental.Delegate;
 
 @Data
 public class ParkDetail {
+  public static final Integer CAR_NOT_FOUND_CODE = 400;
+  public static final Integer OK_CODE = 200;
+
   private Integer code;
   private String msg;
   @Delegate

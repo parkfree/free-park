@@ -57,7 +57,7 @@ public class RtmapService {
       throw new RtmapApiRequestErrorException(e);
     }
 
-    if (parkDetail.getCode() != 200) {
+    if (!ParkDetail.OK_CODE.equals(parkDetail.getCode())) {
       log.warn("Call park detail API for car {} return error code: {}, message: {}",
                carNumber, parkDetail.getCode(), parkDetail.getMsg());
       throw new RtmapApiErrorResponseException(parkDetail.getCode(), parkDetail.getMsg());
@@ -105,7 +105,7 @@ public class RtmapService {
       throw new RtmapApiRequestErrorException(e);
     }
 
-    if (status.getCode() != 401) {
+    if (status.getCode() != Status.PAY_OK_CODE) {
       log.warn("Call pay API return error code: {}, message: {}", status.getCode(), status.getMsg());
       throw new RtmapApiErrorResponseException(status.getCode(), status.getMsg());
     }
