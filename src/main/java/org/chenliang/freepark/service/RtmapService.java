@@ -6,10 +6,10 @@ import org.chenliang.freepark.exception.RtmapApiErrorResponseException;
 import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.rtmap.BuyRequest;
-import org.chenliang.freepark.model.rtmap.BuyResponse;
+import org.chenliang.freepark.model.rtmap.BuyCouponResponse;
 import org.chenliang.freepark.model.rtmap.CheckInRequest;
-import org.chenliang.freepark.model.rtmap.CouponsResponse;
-import org.chenliang.freepark.model.rtmap.CouponsResponse.Coupon;
+import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse;
+import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.Payment;
 import org.chenliang.freepark.model.rtmap.PointsResponse;
@@ -37,6 +37,11 @@ public class RtmapService {
   public static final String PARK_DETAIL_URI = "/app-park/parkingFee/getDetailByCarNumber?wxAppId={wxAppId}" +
       "&openid={openid}&carNumber={carNumber}&userId={userId}&memType={memType}";
   public static final String PAY_URI = "/app-park/payParkingFee";
+  public static final String PRODUCT_LIST_URI = "/wxapp-integral/front/index/coupon/list?portalId={portalId}" +
+      "&openId={openId}&industryId=&integralType=&collectionType=&page={page}&pageSize=20&cid={cid}";
+  public static final String BUY_COUPON_URI = "/wxapp-integral/front/index/buy";
+  public static final String COUPON_LIST_URI = "/app-park/parkingFee/getParkingCouponCard?openid={openId}" +
+      "&marketId={marketId}&cid={cid}&status=2";
 
   public RtmapService(RestTemplate client, FreeParkConfig config) {
     this.client = client;
@@ -163,24 +168,25 @@ public class RtmapService {
   public ProductsResponse getProducts(Member member, int page) {
     ProductsResponse response;
     try {
-      HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
-      response = client.exchange(config.getUris().get("products"), HttpMethod.GET, headers, ProductsResponse.class, MARKET_ID,
-                                 member.getOpenId(), page, member.getUserId()).getBody();
+      HttpEntity<Void> request = new HttpEntity<>(createHeaders(member));
+      response = client.exchange(PRODUCT_LIST_URI, HttpMethod.GET, request, ProductsResponse.class,
+                                 MARKET_ID, member.getOpenId(), page, member.getUserId())
+                       .getBody();
     } catch (Exception e) {
-      log.error("An error occurred when calling the get products API for the member {}", member.getMobile(), e);
+      log.error("Call product list API error with member {}", member.getMobile(), e);
       throw new RtmapApiRequestErrorException(e);
     }
 
-    if (response.getStatus() != 200) {
-      log.warn("Failed to get products, code: {}, message: {}", response.getStatus(), response.getMessage());
+    if (response.getStatus() != ProductsResponse.OK_CODE) {
+      log.warn("Call product list API return error code: {}, message: {}", response.getStatus(),
+               response.getMessage());
       throw new RtmapApiErrorResponseException(response.getStatus(), response.getMessage());
     }
 
-    log.info("Successfully get products page {} of {}", response.getData().getPage(), response.getData().getPages(), response);
     return response;
   }
 
-  public void buy(Member member, int productId, int number) {
+  public void buyParkingCoupons(Member member, int productId, int number) {
     final BuyRequest buyRequest = BuyRequest.builder()
                                             .portalId(MARKET_ID)
                                             .openId(member.getOpenId())
@@ -191,40 +197,40 @@ public class RtmapService {
                                             .num(number)
                                             .build();
 
-    BuyResponse response;
+    BuyCouponResponse response;
     try {
       HttpEntity<BuyRequest> request = new HttpEntity<>(buyRequest, createHeaders(member));
-      response = client.exchange(config.getUris().get("buy"), HttpMethod.POST, request, BuyResponse.class).getBody();
+      response = client.exchange(BUY_COUPON_URI, HttpMethod.POST, request, BuyCouponResponse.class).getBody();
     } catch (Exception e) {
-      log.error("An error occurred when calling the buy tickets API for the member {}", member.getMobile(), e);
+      log.error("Call buy coupon API error for member {}", member.getMobile(), e);
       throw new RtmapApiRequestErrorException(e);
     }
 
-    if (response.getStatus() != 200) {
-      log.warn("Failed to buy tickets for the member {}, code: {}, message: {}", member.getMobile(), response.getStatus(),
-               response.getMessage());
+    if (response.getStatus() != BuyCouponResponse.OK_CODE) {
+      log.warn("Call buy coupon API for member {} return error code: {}, message: {}", member.getMobile(),
+               response.getStatus(), response.getMessage());
       throw new RtmapApiErrorResponseException(response.getStatus(), response.getMessage());
     }
-    log.info("Successfully buy {} tickets for member {}", number, member.getMobile());
   }
 
-  public CouponsResponse getCoupons(Member member) {
-    CouponsResponse response;
+  public ParkingCouponsResponse getAccountCoupons(Member member) {
+    ParkingCouponsResponse response;
     try {
       HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
-      response = client.exchange(config.getUris().get("coupons"), HttpMethod.GET, headers, CouponsResponse.class,
-                                 member.getOpenId(), MARKET_ID, member.getUserId()).getBody();
+      response = client.exchange(COUPON_LIST_URI, HttpMethod.GET, headers, ParkingCouponsResponse.class,
+                                 member.getOpenId(), MARKET_ID, member.getUserId())
+                       .getBody();
     } catch (Exception e) {
-      log.error("An error occurred when calling the get coupons API for the member {}", member.getMobile(), e);
+      log.error("Call get coupons API error for member {}", member.getMobile(), e);
       throw new RtmapApiRequestErrorException(e);
     }
 
-    if (response.getCode() != 200) {
-      log.warn("Failed to get coupons, code: {}, message: {}", response.getCode(), response.getMsg());
+    if (response.getCode() != ParkingCouponsResponse.OK_CODE) {
+      log.warn("Call get coupons API for member {} return error code: {}, message: {}", member.getMobile(),
+               response.getCode(), response.getMsg());
       throw new RtmapApiErrorResponseException(response.getCode(), response.getMsg());
     }
 
-    log.info("Successfully get coupon list, coupon count: {}", response.getData().getCouponList().size());
     return response;
   }
 

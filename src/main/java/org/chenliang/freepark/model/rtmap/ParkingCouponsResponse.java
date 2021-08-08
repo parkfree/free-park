@@ -1,10 +1,12 @@
 package org.chenliang.freepark.model.rtmap;
 
-import java.util.List;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
-public class CouponsResponse {
+public class ParkingCouponsResponse {
+  public static final int OK_CODE = 200;
 
   int code;
   String msg;

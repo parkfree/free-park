@@ -7,9 +7,6 @@ freepark:
   uris:
     checkInPoint: "/sign/signRecord"
     getPoints: "/wxapp-root/api/v1/score/account?tenantType=1&tenantId={tenantId}&cid={cid}"
-    products: "/wxapp-integral/front/index/coupon/list?portalId={portalId}&openId={openId}&industryId=&integralType=&collectionType=&page={page}&pageSize=10&cid={cid}"
-    buy: "/wxapp-integral/front/index/buy"
-    coupons: "/app-park/parkingFee/getParkingCouponCard?openid={openId}&marketId={marketId}&cid={cid}&status=2"
   timeout:
     connect: 1000
     read: 5000
@@ -26,10 +23,6 @@ logging:
     max-history: 5
 
 check-cron: "0 0 8 * * MON-FRI"
-coupon:
-  cron: "0 0 6 1 * *"
-  name: "in卡2小时停车券"
-  number: 8
 
 invite-code: "FREEPARK20"
 

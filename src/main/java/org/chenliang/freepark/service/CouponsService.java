@@ -1,100 +1,72 @@
 package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
-import org.chenliang.freepark.exception.RtmapApiException;
+import org.chenliang.freepark.exception.ProductNotFoundException;
 import org.chenliang.freepark.model.entity.Member;
-import org.chenliang.freepark.model.entity.Tenant;
-import org.chenliang.freepark.model.rtmap.CouponsResponse;
-import org.chenliang.freepark.model.rtmap.CouponsResponse.Coupon;
+import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse;
+import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.ProductsResponse;
+import org.chenliang.freepark.model.rtmap.ProductsResponse.Product;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @Log4j2
 public class CouponsService {
+  public static final String SEARCH_TITLE = "停车券";
 
-    @Value(value = "${coupon.name}")
-    private String couponName;
+  @Autowired
+  private RtmapService rtmapService;
 
-    @Value(value = "${coupon.number}")
-    private int couponNum;
+  @Autowired
+  private MemberRepository memberRepository;
 
-    @Autowired
-    private ThreadPoolTaskScheduler taskScheduler;
+  public Coupon getOneCoupon(Member member) {
+    ParkingCouponsResponse response = rtmapService.getAccountCoupons(member);
+    if (response.getData().getCouponList().isEmpty()) {
+      return null;
+    } else {
+      return response.getData().getCouponList().get(0);
+    }
+  }
 
-    @Autowired
-    private RtmapService rtmapService;
+  public void buyParkingCoupons(Member member) {
+    try {
+      Product product = searchCurrentMonthParkingCouponProduct(member);
+      rtmapService.buyParkingCoupons(member, product.getId(), product.getGetLimit());
+    } finally {
+      List<Coupon> coupons = getCurrentMonthParkingCoupons(member);
+      member.setCoupons(coupons.size());
+      memberRepository.save(member);
+    }
+  }
 
-    @Autowired
-    private MemberRepository memberRepository;
+  public List<Coupon> getCurrentMonthParkingCoupons(Member member) {
+    return rtmapService.getAccountCoupons(member).getData().getCouponList()
+                       .stream()
+                       .filter(coupon -> isCurrentMonthParkingCoupon(coupon.getMainInfo()))
+                       .collect(Collectors.toList());
+  }
 
-    public Coupon getOneCoupon(Member member) {
-        CouponsResponse response = rtmapService.getCoupons(member);
-        if (response.getData().getCouponList().isEmpty()) {
-            return null;
-        } else {
-            return response.getData().getCouponList().get(0);
-        }
+  private Product searchCurrentMonthParkingCouponProduct(Member member) {
+    ProductsResponse response = rtmapService.getProducts(member, 1);
+
+    for (Product product : response.getData().getList()) {
+      if (isCurrentMonthParkingCoupon(product.getMainInfo())) {
+        return product;
+      }
     }
 
-    public void buyCoupons(Tenant tenant, int delayBound) {
-        List<Member> members = memberRepository.findByTenantId(tenant.getId());
-        buyCoupons(members, delayBound);
-    }
+    throw new ProductNotFoundException("Cannot find current month parking coupon product");
+  }
 
-    public void buyCoupons(List<Member> members, int delayBound) {
-        Instant now = Instant.now();
-        Random random = new Random();
-
-        final int productId = getProductId(members.get(0));
-        for (Member member : members) {
-            int delaySeconds = random.nextInt(Integer.max(delayBound, 1));
-            Instant startTime = now.plusSeconds(delaySeconds);
-            log.info("Scheduled member {} to buy coupons at {}", member.getMobile(), startTime.toString());
-            taskScheduler.schedule(() -> {
-                try {
-                    rtmapService.buy(member, productId, couponNum);
-                    member.setCoupons(couponNum);
-                    memberRepository.save(member);
-                } catch (RtmapApiException ignored) {
-                } catch (Exception e) {
-                    log.info("Get coupons task for member {} failed with unexpected exception", member.getMobile(), e);
-                }
-            }, startTime);
-        }
-    }
-
-    private int getProductId(Member member) {
-        int startPage = 1;
-        int productId = searchCouponId(member, startPage);
-        if (productId == -1) {
-            throw new RuntimeException("Cannot found free parking coupon product");
-        }
-
-        return productId;
-    }
-
-    private int searchCouponId(Member member, int page) {
-        ProductsResponse response = rtmapService.getProducts(member, page);
-        List<ProductsResponse.Product> products = response.getData().getList();
-        for (ProductsResponse.Product product : products) {
-            if (product.getMainInfo().contains(couponName)) {
-                return product.getId();
-            }
-        }
-
-        if ((page + 1) > response.getData().getPages()) {
-            return -1;
-        } else {
-            return searchCouponId(member, page + 1);
-        }
-    }
+  private boolean isCurrentMonthParkingCoupon(String productTitle) {
+    String searchMonth = LocalDateTime.now().getMonthValue() + "月";
+    return productTitle.contains(SEARCH_TITLE) && productTitle.contains(searchMonth);
+  }
 }

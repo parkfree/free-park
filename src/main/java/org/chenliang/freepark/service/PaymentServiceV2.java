@@ -11,7 +11,7 @@ import org.chenliang.freepark.model.PaymentStatus;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Payment;
 import org.chenliang.freepark.model.entity.Tenant;
-import org.chenliang.freepark.model.rtmap.CouponsResponse.Coupon;
+import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.repository.PaymentRepository;
