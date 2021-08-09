@@ -13,6 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.annotation.IncompleteAnnotationException;
+
 @Service
 public class TenantService {
   @Autowired
@@ -58,6 +60,11 @@ public class TenantService {
     tenant.setOwner(request.getOwner());
     tenant.setEmail(request.getEmail());
     return tenantRepository.save(tenant);
+  }
+
+  public void increaseTotalAmount(Tenant tenant, int amount) {
+    tenant.setTotalPaidAmount(tenant.getTotalPaidAmount() + amount);
+    tenantRepository.save(tenant);
   }
 
   @Transactional

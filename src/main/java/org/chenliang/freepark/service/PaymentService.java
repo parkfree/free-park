@@ -11,7 +11,6 @@ import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.model.rtmap.ParkDetail;
 import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
 import org.chenliang.freepark.repository.PaymentRepository;
-import org.chenliang.freepark.repository.TenantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.chenliang.freepark.service.UnitUtil.*;
+import static org.chenliang.freepark.service.UnitUtil.HOUR_PER_COUPON;
+import static org.chenliang.freepark.service.UnitUtil.POINT_PER_HOUR;
+import static org.chenliang.freepark.service.UnitUtil.centToHour;
+import static org.chenliang.freepark.service.UnitUtil.centToYuan;
+import static org.chenliang.freepark.service.UnitUtil.couponToHour;
+import static org.chenliang.freepark.service.UnitUtil.hourToPoint;
 
 @Service
 @Log4j2
@@ -38,7 +42,7 @@ public class PaymentService {
   private PaymentRepository paymentRepository;
 
   @Autowired
-  private TenantRepository tenantRepository;
+  private TenantService tenantService;
 
   @Autowired
   private CouponsService couponsService;
@@ -52,11 +56,19 @@ public class PaymentService {
       PaymentStatus.CAR_NOT_FOUND, "车辆不在停车场",
       PaymentStatus.NO_NEED_TO_PAY, "当前时段已缴费，无须再缴费",
       PaymentStatus.NEED_WECHAT_PAY, "需要通过微信手工缴费",
-      PaymentStatus.PARK_DETAIL_API_ERROR, "调用详情API错误",
-      PaymentStatus.PAY_API_ERROR, "调用缴费API错误",
-      PaymentStatus.MEMBER_NO_DISCOUNT, "会员账号没有优惠",
       PaymentStatus.RTMAP_API_ERROR, "调用三方API错误"
   );
+
+  public Page<Payment> getPaymentsPage(Pageable pageable, PaymentSearchQuery searchQuery) {
+    return paymentRepository.findAll(searchQuery.toSpecification(), pageable);
+  }
+
+  public List<Payment> getTodayPayments(Tenant tenant) {
+    LocalDate today = LocalDate.now();
+    LocalDateTime from = today.atStartOfDay();
+    LocalDateTime to = today.plusDays(1).atStartOfDay();
+    return paymentRepository.getByTenantIdAndPaidAtBetween(tenant.getId(), from, to);
+  }
 
   public Payment pay(Tenant tenant) {
     Member member = memberService.getBestMemberForPayment(tenant);
@@ -77,7 +89,7 @@ public class PaymentService {
       parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
     } catch (RtmapApiException e) {
       if (e instanceof RtmapApiErrorResponseException) {
-        if( ((RtmapApiErrorResponseException) e).getCode() == ParkDetail.CAR_NOT_FOUND_CODE) {
+        if (((RtmapApiErrorResponseException) e).getCode() == ParkDetail.CAR_NOT_FOUND_CODE) {
           log.info("Car {} is not found when paying", tenant.getCarNumber());
           return createPayment(tenant, member, PaymentStatus.CAR_NOT_FOUND, 0);
         }
@@ -95,9 +107,8 @@ public class PaymentService {
     }
 
     if (member.affordableParkingHour() < centToHour(parkingFeeCent)) {
-      int yuan = centToYuan(parkingFeeCent);
-      sendManuallyPayEmail(tenant.getEmail(), yuan);
-      log.info("Need manually pay {} RMB for car {}", yuan, tenant.getCarNumber());
+      sendFailedEmail(tenant.getEmail());
+      log.info("Need manually pay {} RMB for car {}", centToYuan(parkingFeeCent), tenant.getCarNumber());
       return createPayment(tenant, member, PaymentStatus.NEED_WECHAT_PAY, receivableCent);
     }
 
@@ -108,14 +119,13 @@ public class PaymentService {
       rtmapService.payParkingFee(member, parkDetail, requiredPoints, selectedCoupons);
     } catch (RtmapApiException e) {
       // TODO: special handle 400 error code, this means either insufficient points, or coupon count is not correct.
-      int amount = centToYuan(parkDetail.getParkingFee().getFeeNumber());
-      sendFailedEmail(tenant.getEmail(), amount);
+      sendFailedEmail(tenant.getEmail());
       return createPayment(tenant, member, PaymentStatus.RTMAP_API_ERROR, receivableCent);
     }
 
     Payment payment = createPayment(tenant, member, PaymentStatus.SUCCESS, receivableCent);
-    updateTenantTotalAmount(tenant, payment);
-    memberService.updateMember(member, requiredPoints, selectedCoupons.size());
+    tenantService.increaseTotalAmount(tenant, payment.getAmount());
+    memberService.decreasePointsAndCoupons(member, requiredPoints, selectedCoupons.size());
     return payment;
   }
 
@@ -145,37 +155,9 @@ public class PaymentService {
     return leftHour > 0 ? hourToPoint(leftHour) : 0;
   }
 
-  private void sendManuallyPayEmail(String email, int amount) {
-    String subject = "需要微信手工缴费";
-    String content = String.format("请使用微信小程序手工缴费 %d 元。", amount);
-    emailService.sendMail(email, subject, content);
-  }
-
-  private void sendFailedEmail(String email, int amount) {
-    String subject = "自动缴费失败";
-    String content = String.format("Free Park 自动缴费失败，请使用微信小程序手工缴费 %d 元。", amount);
-    emailService.sendMail(email, subject, content);
-  }
-
   private void sendFailedEmail(String email) {
     String subject = "自动缴费失败";
     String content = "Free Park 自动缴费失败，请使用微信小程序手工缴费。";
     emailService.sendMail(email, subject, content);
-  }
-
-  private void updateTenantTotalAmount(Tenant tenant, Payment payment) {
-    tenant.setTotalPaidAmount(tenant.getTotalPaidAmount() + payment.getAmount());
-    tenantRepository.save(tenant);
-  }
-
-  public Page<Payment> getPaymentsPage(Pageable pageable, PaymentSearchQuery searchQuery) {
-    return paymentRepository.findAll(searchQuery.toSpecification(), pageable);
-  }
-
-  public List<Payment> getTodayPayments(Tenant tenant) {
-    LocalDate today = LocalDate.now();
-    LocalDateTime from = today.atStartOfDay();
-    LocalDateTime to = today.plusDays(1).atStartOfDay();
-    return paymentRepository.getByTenantIdAndPaidAtBetween(tenant.getId(), from, to);
   }
 }

@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.Optional;
 
 @Service
 public class MemberService {
@@ -46,7 +45,7 @@ public class MemberService {
                            .orElse(null);
   }
 
-  public void updateMember(Member member, int usedPoints, int usedCoupons) {
+  public void decreasePointsAndCoupons(Member member, int usedPoints, int usedCoupons) {
     member.setPoints(member.getPoints() - usedPoints);
     member.setCoupons(member.getCoupons() - usedCoupons);
     member.setLastPaidAt(LocalDate.now());
