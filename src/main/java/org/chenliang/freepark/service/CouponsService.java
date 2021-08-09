@@ -38,8 +38,12 @@ public class CouponsService {
 
   public List<Coupon> updateAndGetCoupons(Member member) {
     List<Coupon> coupons = getCurrentMonthParkingCoupons(member);
-    member.setCoupons(coupons.size());
-    memberRepository.save(member);
+    if (coupons.size() != member.getCoupons()) {
+      member.setCoupons(coupons.size());
+      memberRepository.save(member);
+      log.info("Coupon count of member {} is not correct, update from {} to {}",
+               member.getMobile(), member.getCoupons(), coupons.size());
+    }
     return coupons;
   }
 
