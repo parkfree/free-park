@@ -6,7 +6,7 @@ import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentSearchQuery;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.TenantRepository;
-import org.chenliang.freepark.service.PaymentServiceV2;
+import org.chenliang.freepark.service.PaymentService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,12 +18,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin")
 public class AdminPaymentController {
   @Autowired
-  private PaymentServiceV2 paymentService;
+  private PaymentService paymentService;
 
   @Autowired
   private TenantRepository tenantRepository;
@@ -34,20 +35,23 @@ public class AdminPaymentController {
   @GetMapping("/payments")
   public Page<PaymentDetailResponse> getPayments(Pageable pageable, PaymentSearchQuery searchQuery) {
     return paymentService.getPaymentsPage(pageable, searchQuery)
-        .map(payment -> modelMapper.map(payment, PaymentDetailResponse.class));
+                         .map(payment -> modelMapper.map(payment, PaymentDetailResponse.class));
   }
 
   @PostMapping("/tenants/{id}/payments")
   public PaymentResponse pay(@PathVariable Integer id) {
     Tenant tenant = tenantRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
-    return paymentService.pay(tenant.getId());
+                                    .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+    return modelMapper.map(paymentService.pay(tenant), PaymentResponse.class);
   }
 
   @GetMapping("/tenants/{id}/payments/today")
   public List<PaymentResponse> getPaymentsOfToday(@PathVariable Integer id) {
     Tenant tenant = tenantRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
-    return paymentService.getTodayPayments(tenant);
+                                    .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+    return paymentService.getTodayPayments(tenant)
+                         .stream()
+                         .map(payment -> modelMapper.map(payment, PaymentResponse.class))
+                         .collect(Collectors.toList());
   }
 }

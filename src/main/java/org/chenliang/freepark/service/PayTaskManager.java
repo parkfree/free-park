@@ -1,23 +1,21 @@
 package org.chenliang.freepark.service;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.model.PayTask;
-import org.chenliang.freepark.model.PaymentResponse;
 import org.chenliang.freepark.model.PaymentStatus;
+import org.chenliang.freepark.model.entity.Payment;
 import org.chenliang.freepark.model.entity.Tenant;
-import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 @Log4j2
@@ -29,10 +27,10 @@ public class PayTaskManager {
   private final Map<Integer, PayTask> payTasks = new ConcurrentHashMap<>();
 
   @Autowired
-  private MemberRepository memberRepository;
+  private MemberService memberService;
 
   @Autowired
-  private PaymentServiceV2 paymentService;
+  private PaymentService paymentService;
 
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
@@ -47,13 +45,13 @@ public class PayTaskManager {
     log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
 
     PayTask payTask = PayTask.builder()
-      .tenantId(tenant.getId())
-      .parkAt(parkAtTime)
-      .createdAt(LocalDateTime.now())
-      .initDelaySeconds((int) initDelay.toSeconds())
-      .periodMinutes((int) PAY_PERIOD.toMinutes())
-      .nextScheduledAt(LocalDateTime.now().plus(initDelay))
-      .build();
+                             .tenantId(tenant.getId())
+                             .parkAt(parkAtTime)
+                             .createdAt(LocalDateTime.now())
+                             .initDelaySeconds((int) initDelay.toSeconds())
+                             .periodMinutes((int) PAY_PERIOD.toMinutes())
+                             .nextScheduledAt(LocalDateTime.now().plus(initDelay))
+                             .build();
     payTasks.put(tenant.getId(), payTask);
 
     ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(() -> {
@@ -82,14 +80,14 @@ public class PayTaskManager {
   }
 
   private void pay(Tenant tenant) {
-    PaymentResponse paymentResponse = paymentService.pay(tenant.getId());
+    Payment payment = paymentService.pay(tenant);
     updatePayTaskStatus(tenant);
 
-    PaymentStatus paymentStatus = paymentResponse.getStatus();
+    PaymentStatus paymentStatus = payment.getStatus();
     if (paymentStatus == PaymentStatus.CAR_NOT_FOUND || paymentStatus == PaymentStatus.NO_AVAILABLE_MEMBER) {
       cancelPayTask(tenant);
     } else if (paymentStatus == PaymentStatus.SUCCESS) {
-      if (memberRepository.getBestPayMember(tenant) == null) {
+      if (memberService.getBestMemberForPayment(tenant) == null) {
         log.warn("All members for car {} are used, cancel the pay schedule task", tenant.getCarNumber());
         cancelPayTask(tenant);
       }

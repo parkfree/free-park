@@ -10,7 +10,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.Optional;
 
 @Service
 public class MemberService {
@@ -42,6 +44,13 @@ public class MemberService {
                            .filter(member -> member.getCoupons() > 0 || member.getPoints() >= UnitUtil.POINT_PER_HOUR)
                            .max(Comparator.comparingInt(Member::affordableParkingHour))
                            .orElse(null);
+  }
+
+  public void updateMember(Member member, int usedPoints, int usedCoupons) {
+    member.setPoints(member.getPoints() - usedPoints);
+    member.setCoupons(member.getCoupons() - usedCoupons);
+    member.setLastPaidAt(LocalDate.now());
+    memberRepository.save(member);
   }
 
   private void setMemberFields(MemberRequest memberRequest, Member member) {

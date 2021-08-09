@@ -29,4 +29,8 @@ public class UnitUtil {
   public static int centToHour(int cents) {
     return cents / CENT_PER_HOUR;
   }
+
+  public static int hourToPoint(int hours) {
+    return hours * POINT_PER_HOUR;
+  }
 }

@@ -30,8 +30,11 @@ public class ParkDetail {
     private Integer parkingLongTime;
     private Long endTime;
     private Integer totalAmount;
+    // receivable = parking_hours * price_per_hour (in cent)
     private Integer receivable;
+    // memberDeductible = member's_free_parking_hours * price_per_hour (in cent)
     private Integer memberDeductible;
+    // feeNumber = receivable - memberDeductible
     private Integer feeNumber;
   }
 }
