@@ -2,7 +2,9 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.exception.ProductNotFoundException;
+import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.entity.Member;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.ProductsResponse;
 import org.chenliang.freepark.model.rtmap.ProductsResponse.Product;
@@ -24,6 +26,20 @@ public class CouponsService {
 
   @Autowired
   private MemberRepository memberRepository;
+
+  public Member buyParkingCoupons(Tenant tenant, int memberId) {
+    Member member = memberRepository.findFirstByIdAndTenantId(memberId, tenant.getId())
+                                    .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+    buyParkingCoupons(member);
+    return memberRepository.findById(memberId).orElse(null);
+  }
+
+  public Member updateParkingCoupons(Tenant tenant, Integer memberId) {
+    Member member = memberRepository.findFirstByIdAndTenantId(memberId, tenant.getId())
+                                    .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+    updateAndGetCoupons(member);
+    return memberRepository.findById(memberId).orElse(null);
+  }
 
   public void buyParkingCoupons(Member member) {
     try {
