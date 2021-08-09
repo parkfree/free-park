@@ -3,7 +3,6 @@ package org.chenliang.freepark.service;
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.exception.ProductNotFoundException;
 import org.chenliang.freepark.model.entity.Member;
-import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse;
 import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.ProductsResponse;
 import org.chenliang.freepark.model.rtmap.ProductsResponse.Product;
@@ -25,15 +24,6 @@ public class CouponsService {
 
   @Autowired
   private MemberRepository memberRepository;
-
-  public Coupon getOneCoupon(Member member) {
-    ParkingCouponsResponse response = rtmapService.getAccountCoupons(member);
-    if (response.getData().getCouponList().isEmpty()) {
-      return null;
-    } else {
-      return response.getData().getCouponList().get(0);
-    }
-  }
 
   public void buyParkingCoupons(Member member) {
     try {
