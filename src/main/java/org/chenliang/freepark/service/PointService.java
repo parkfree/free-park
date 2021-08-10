@@ -44,8 +44,13 @@ public class PointService {
 
   public Member updatePoint(Member member) {
     PointsResponse pointsResponse = rtmapService.getAccountPoints(member);
-    member.setPoints(pointsResponse.getTotal());
-    return memberRepository.save(member);
+    if (member.getPoints() != pointsResponse.getTotal()) {
+      log.info("Update member {} points from {} to {}",
+               member.getMobile(), member.getPoints(), pointsResponse.getTotal());
+      member.setPoints(pointsResponse.getTotal());
+      return memberRepository.save(member);
+    }
+    return member;
   }
 
   private void checkInPoint(Member member) {

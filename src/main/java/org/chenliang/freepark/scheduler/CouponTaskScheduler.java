@@ -40,6 +40,7 @@ public class CouponTaskScheduler {
       taskScheduler.schedule(() -> {
         try {
           couponsService.buyParkingCoupons(member);
+          log.info("Coupon task success for member {}", member.getMobile());
         } catch (Exception e) {
           log.info("Buy coupons task for member {} failed with unexpected exception", member.getMobile(), e);
         }
