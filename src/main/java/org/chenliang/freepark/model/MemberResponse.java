@@ -17,5 +17,5 @@ public class MemberResponse {
   private Boolean enablePay;
   private Boolean enablePoint;
   private LocalDate lastPaidAt;
-  private String coupons;
+  private Integer coupons;
 }
