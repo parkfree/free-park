@@ -37,7 +37,7 @@ public class PointTaskScheduler {
       log.info("Scheduled member {} to get checkin point at {}", member.getMobile(), startTime.toString());
       taskScheduler.schedule(() -> {
         try {
-          pointService.getPoint(member.getId());
+          pointService.checkInPoint(member.getId());
         } catch (Exception e) {
           log.info("Point task for member {} failed with unexpected exception", member.getMobile(), e);
         }

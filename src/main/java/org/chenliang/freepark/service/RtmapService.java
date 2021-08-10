@@ -18,7 +18,6 @@ import org.chenliang.freepark.model.rtmap.Status;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -37,13 +36,18 @@ public class RtmapService {
   private final FreeParkConfig config;
 
   public static final String PARK_DETAIL_URI = "/app-park/parkingFee/getDetailByCarNumber?wxAppId={wxAppId}" +
-      "&openid={openid}&carNumber={carNumber}&userId={userId}&memType={memType}";
+                                               "&openid={openid}&carNumber={carNumber}&userId={userId}" +
+                                               "&memType={memType}";
   public static final String PAY_URI = "/app-park/payParkingFee";
   public static final String PRODUCT_LIST_URI = "/wxapp-integral/front/index/coupon/list?portalId={portalId}" +
-      "&openId={openId}&industryId=&integralType=&collectionType=&page={page}&pageSize=20&cid={cid}";
+                                                "&openId={openId}&industryId=&integralType=&collectionType=" +
+                                                "&page={page}&pageSize=20&cid={cid}";
   public static final String BUY_COUPON_URI = "/wxapp-integral/front/index/buy";
   public static final String COUPON_LIST_URI = "/app-park/parkingFee/getParkingCouponCard?openid={openId}" +
-      "&marketId={marketId}&cid={cid}&status=2";
+                                               "&marketId={marketId}&cid={cid}&status=2";
+  public static final String CHECK_IN_POINT_URI = "/sign/signRecord";
+  public static final String GET_POINT_URI = "/wxapp-root/api/v1/score/account?tenantType=1&tenantId={tenantId}" +
+                                             "&cid={cid}";
 
   public RtmapService(RestTemplate client, FreeParkConfig config) {
     this.client = client;
@@ -117,8 +121,7 @@ public class RtmapService {
     }
   }
 
-  @Retryable(value = RtmapApiRequestErrorException.class, maxAttempts = 2)
-  public void checkIn(Member member) {
+  public void checkInPoint(Member member) {
     final CheckInRequest checkInRequest = CheckInRequest.builder()
                                                         .openid(member.getOpenId())
                                                         .channelId(1001)
@@ -131,38 +134,36 @@ public class RtmapService {
 
     Status status;
     try {
-      status = client.exchange(config.getUris().get("checkInPoint"), HttpMethod.POST, request, Status.class).getBody();
+      status = client.exchange(CHECK_IN_POINT_URI, HttpMethod.POST, request, Status.class)
+                     .getBody();
     } catch (Exception e) {
-      log.error("Request Check in point API error for member {}", member.getMobile(), e);
+      log.error("Call check in point API error for member {}", member.getMobile(), e);
       throw new RtmapApiRequestErrorException(e);
     }
-    // 200 is success, 400 is already check in
-    if (status.getCode() != 200 && status.getCode() != 400) {
-      log.warn("Check in point failed for member {}, code: {}, message: {}", member.getMobile(), status.getCode(),
-               status.getMsg());
+    if (status.getCode() != Status.POINT_CHECKIN_OK_CODE && status.getCode() != Status.POINT_ALREADY_CHECKED_CODE) {
+      log.warn("Call Check in point for member {} return error code: {}, message: {}",
+               member.getMobile(), status.getCode(), status.getMsg());
       throw new RtmapApiErrorResponseException(status.getCode(), status.getMsg());
     }
-    log.info("Check in point success for member {}", member.getMobile());
   }
 
-  @Retryable(value = RtmapApiRequestErrorException.class, maxAttempts = 2)
   public PointsResponse getAccountPoints(Member member) {
     HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
     PointsResponse pointsResponse;
     try {
-      pointsResponse = client.exchange(config.getUris().get("getPoints"), HttpMethod.GET, headers, PointsResponse.class,
-                                       MARKET_ID, member.getUserId()).getBody();
+      pointsResponse = client.exchange(GET_POINT_URI, HttpMethod.GET, headers, PointsResponse.class,
+                                       MARKET_ID, member.getUserId())
+                             .getBody();
     } catch (Exception e) {
-      log.error("Request get account point API error for member {}", member.getMobile(), e);
+      log.error("Call get account point API error for member {}", member.getMobile(), e);
       throw new RtmapApiRequestErrorException(e);
     }
 
-    if (pointsResponse.getStatus() != 200) {
-      log.warn("Get account point for member {} failed, code: {}, message: {}", member.getMobile(),
-               pointsResponse.getStatus(), pointsResponse.getMessage());
+    if (pointsResponse.getStatus() != Status.GET_POINT_OK_CODE) {
+      log.warn("Call get account point API for member {} return error code: {}, message: {}",
+               member.getMobile(), pointsResponse.getStatus(), pointsResponse.getMessage());
       throw new RtmapApiErrorResponseException(pointsResponse.getStatus(), pointsResponse.getMessage());
     }
-    log.info("Get account point for member {} success, total points are: {}", member.getMobile(), pointsResponse.getTotal());
     return pointsResponse;
   }
 

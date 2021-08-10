@@ -13,6 +13,5 @@ public class FreeParkConfig {
   private String wxAppId;
   private String endpoint;
   private Map<String, String> headers;
-  private Map<String, String> uris;
   private Map<String, Integer> timeout;
 }

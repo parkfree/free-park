@@ -14,12 +14,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
 @Log4j2
 public class CouponsService {
   public static final String SEARCH_TITLE = "停车券";
+  public static final Supplier<ResourceNotFoundException> MEMBER_NOT_FOUND = () -> new ResourceNotFoundException("Member not found");
 
   @Autowired
   private RtmapService rtmapService;
@@ -29,16 +31,18 @@ public class CouponsService {
 
   public Member buyParkingCoupons(Tenant tenant, int memberId) {
     Member member = memberRepository.findFirstByIdAndTenantId(memberId, tenant.getId())
-                                    .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+                                    .orElseThrow(MEMBER_NOT_FOUND);
     buyParkingCoupons(member);
-    return memberRepository.findById(memberId).orElse(null);
+    return memberRepository.findById(memberId)
+                           .orElseThrow(MEMBER_NOT_FOUND);
   }
 
   public Member updateParkingCoupons(Tenant tenant, Integer memberId) {
     Member member = memberRepository.findFirstByIdAndTenantId(memberId, tenant.getId())
-                                    .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+                                    .orElseThrow(MEMBER_NOT_FOUND);
     updateAndGetCoupons(member);
-    return memberRepository.findById(memberId).orElse(null);
+    return memberRepository.findById(memberId)
+                           .orElseThrow(MEMBER_NOT_FOUND);
   }
 
   public void buyParkingCoupons(Member member) {

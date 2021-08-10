@@ -2,63 +2,58 @@ package org.chenliang.freepark.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
-import org.chenliang.freepark.exception.RtmapApiException;
-import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.entity.Member;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.model.rtmap.PointsResponse;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.function.Supplier;
+
 @Service
 @Log4j2
 public class PointService {
 
+  public static final Supplier<ResourceNotFoundException> MEMBER_NOT_FOUND = () -> new ResourceNotFoundException("Member not found");
   @Autowired
   private MemberRepository memberRepository;
 
   @Autowired
   private RtmapService rtmapService;
 
-  public void getPoint(int memberId) {
+  public void checkInPoint(int memberId) {
     Member member = memberRepository.findById(memberId)
-        .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+                                    .orElseThrow(MEMBER_NOT_FOUND);
+    checkInPoint(member);
+  }
 
-    try {
-      rtmapService.checkIn(member);
-    } catch (RtmapApiException ignore) {
-    }
+  public Member checkInPoint(Tenant tenant, Integer memberId) {
+    Member member = memberRepository.findFirstByIdAndTenantId(memberId, tenant.getId())
+                                    .orElseThrow(MEMBER_NOT_FOUND);
+    checkInPoint(member);
+    return memberRepository.findById(memberId)
+                           .orElseThrow(MEMBER_NOT_FOUND);
+  }
 
+  public Member updatePoint(Tenant tenant, Integer memberId) {
+    Member member = memberRepository.findFirstByIdAndTenantId(memberId, tenant.getId())
+                                    .orElseThrow(MEMBER_NOT_FOUND);
+    return updatePoint(member);
+  }
+
+  public Member updatePoint(Member member) {
+    PointsResponse pointsResponse = rtmapService.getAccountPoints(member);
+    member.setPoints(pointsResponse.getTotal());
+    return memberRepository.save(member);
+  }
+
+  private void checkInPoint(Member member) {
     try {
-      PointsResponse pointsResponse = rtmapService.getAccountPoints(member);
-      int oldPoints = member.getPoints();
-      if (oldPoints != pointsResponse.getTotal()) {
-        member.setPoints(pointsResponse.getTotal());
-        memberRepository.save(member);
-        log.info("Update member {} points from {} to {}", member.getMobile(), oldPoints, pointsResponse.getTotal());
-      }
-    } catch (RtmapApiException ignored) {
+      rtmapService.checkInPoint(member);
+    } finally {
+      updatePoint(member);
     }
   }
 
-  public void refreshMemberPoint(int memberId) {
-    Member member = memberRepository.findById(memberId).orElseThrow(() -> new ResourceNotFoundException("Member not found"));
-    int oldPoints = member.getPoints();
-    PointsResponse pointsResponse = null;
-    try {
-      pointsResponse = rtmapService.getAccountPoints(member);
-    } catch (RtmapApiRequestErrorException ex) {
-      member.setPoints(0);
-      log.error("Set member {} points to 0, get points failed cause by: {},", member.getMobile(), ex.getMessage(), ex);
-    }
-
-    if (pointsResponse != null) {
-      member.setPoints(pointsResponse.getTotal());
-    }
-
-    if (oldPoints != member.getPoints()) {
-      memberRepository.save(member);
-      log.info("Refresh member {} points from {} to {}", member.getMobile(), oldPoints, member.getPoints());
-    }
-  }
 }
