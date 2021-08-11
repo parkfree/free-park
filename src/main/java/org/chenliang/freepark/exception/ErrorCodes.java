@@ -7,4 +7,5 @@ public class ErrorCodes {
   public static int NOT_FOUND = 103;
   public static int FORBIDDEN = 104;
   public static int UNAUTHORIZED = 105;
+  public static int RTMAP_API_ERROR = 106;
 }

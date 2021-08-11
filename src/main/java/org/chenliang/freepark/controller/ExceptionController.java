@@ -5,6 +5,8 @@ import org.chenliang.freepark.exception.ErrorCodes;
 import org.chenliang.freepark.exception.InvalidRequestException;
 import org.chenliang.freepark.exception.PaymentErrorException;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
+import org.chenliang.freepark.exception.RtmapApiErrorResponseException;
+import org.chenliang.freepark.exception.RtmapApiRequestErrorException;
 import org.chenliang.freepark.model.ErrorResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -49,6 +51,16 @@ public class ExceptionController extends ResponseEntityExceptionHandler {
   @ExceptionHandler(value = {EntityNotFoundException.class, ResourceNotFoundException.class})
   public ResponseEntity<ErrorResponse> notFoundExceptionHandler(Exception e) {
     return response(NOT_FOUND, ErrorCodes.NOT_FOUND, e.getMessage());
+  }
+
+  @ExceptionHandler(value = RtmapApiRequestErrorException.class)
+  public ResponseEntity<ErrorResponse> rtmapApiRequestErrorExceptionHandler(RtmapApiRequestErrorException e) {
+    return response(INTERNAL_SERVER_ERROR, ErrorCodes.RTMAP_API_ERROR, "调用三方API失败");
+  }
+
+  @ExceptionHandler(value = RtmapApiErrorResponseException.class)
+  public ResponseEntity<ErrorResponse> rtmapApiErrorResponseExceptionHandler(RtmapApiErrorResponseException e) {
+    return response(BAD_REQUEST, ErrorCodes.RTMAP_API_ERROR, e.getMessage());
   }
 
   public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpHeaders headers, HttpStatus status, WebRequest request) {
