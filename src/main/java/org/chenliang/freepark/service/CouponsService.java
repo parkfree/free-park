@@ -75,11 +75,16 @@ public class CouponsService {
   }
 
   private Product searchCurrentMonthParkingCouponProduct(Member member) {
-    ProductsResponse response = rtmapService.getProducts(member, 1);
+    for (int page = 1; ; page++) {
+      ProductsResponse response = rtmapService.getProducts(member, page);
 
-    for (Product product : response.getData().getList()) {
-      if (isCurrentMonthParkingCoupon(product.getMainInfo())) {
-        return product;
+      for (Product product : response.getData().getList()) {
+        if (isCurrentMonthParkingCoupon(product.getMainInfo())) {
+          return product;
+        }
+      }
+      if (response.getData().getPage() == response.getData().getPages()) {
+        break;
       }
     }
 
