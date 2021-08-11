@@ -80,6 +80,7 @@ public class PayTaskManager {
   }
 
   private void pay(Tenant tenant) {
+    log.info("Start to pay car {}", tenant.getCarNumber());
     Payment payment = paymentService.pay(tenant);
     updatePayTaskStatus(tenant);
 
@@ -87,6 +88,7 @@ public class PayTaskManager {
     if (paymentStatus == PaymentStatus.CAR_NOT_FOUND || paymentStatus == PaymentStatus.NO_AVAILABLE_MEMBER) {
       cancelPayTask(tenant);
     } else if (paymentStatus == PaymentStatus.SUCCESS) {
+      log.info("Successfully paid car {}", tenant.getCarNumber());
       if (memberService.getBestMemberForPayment(tenant) == null) {
         log.warn("All members for car {} are used, cancel the pay schedule task", tenant.getCarNumber());
         cancelPayTask(tenant);
