@@ -59,7 +59,7 @@ public class AdminMemberController {
   public MemberResponse createMember(@PathVariable Integer id, @RequestBody @Validated MemberRequest request) {
     Tenant tenant = tenantRepository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
-    return memberService.createMember(request, tenant);
+    return modelMapper.map(memberService.createMember(request, tenant), MemberResponse.class);
   }
 
   @PutMapping("/tenants/{tenantId}/members/{memberId}")
@@ -67,7 +67,7 @@ public class AdminMemberController {
                                      @RequestBody @Validated MemberRequest request) {
     Tenant tenant = tenantRepository.findById(tenantId)
         .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
-    return memberService.updateMember(memberId, request, tenant);
+    return modelMapper.map(memberService.updateMember(memberId, request, tenant), MemberResponse.class);
   }
 
   @DeleteMapping("/members/{id}")

@@ -11,7 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,26 +36,26 @@ public class MemberController {
   @GetMapping("/members/{id}")
   public MemberResponse getMember(@PathVariable Integer id, @AuthenticationPrincipal Tenant tenant) {
     return memberRepository.findFirstByIdAndTenantId(id, tenant.getId())
-        .map(member -> modelMapper.map(member, MemberResponse.class))
-        .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+                           .map(member -> modelMapper.map(member, MemberResponse.class))
+                           .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
   }
 
   @GetMapping("/members")
   public List<MemberResponse> getMembers(@AuthenticationPrincipal Tenant tenant) {
     return memberRepository.findByTenantId(tenant.getId()).stream()
-        .map(member -> modelMapper.map(member, MemberResponse.class))
-        .collect(Collectors.toList());
+                           .map(member -> modelMapper.map(member, MemberResponse.class))
+                           .collect(Collectors.toList());
   }
 
   @PostMapping("/members")
   public MemberResponse createMember(@RequestBody @Validated MemberRequest request, @AuthenticationPrincipal Tenant tenant) {
-    return memberService.createMember(request, tenant);
+    return modelMapper.map(memberService.createMember(request, tenant), MemberResponse.class);
   }
 
   @PutMapping("/members/{id}")
   public MemberResponse updateMember(@PathVariable Integer id, @RequestBody @Validated MemberRequest request,
                                      @AuthenticationPrincipal Tenant tenant) {
-    return memberService.updateMember(id, request, tenant);
+    return modelMapper.map(memberService.updateMember(id, request, tenant), MemberResponse.class);
   }
 
   @DeleteMapping("/members/{id}")

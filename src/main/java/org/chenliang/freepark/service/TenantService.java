@@ -13,8 +13,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.lang.annotation.IncompleteAnnotationException;
-
 @Service
 public class TenantService {
   @Autowired
@@ -42,7 +40,7 @@ public class TenantService {
 
   public Tenant adminUpdateTenant(Integer id, UpdateTenantRequest request) {
     Tenant tenant = tenantRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
+                                    .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
     tenant.setCarNumber(request.getCarNumber());
     tenant.setOwner(request.getOwner());
     tenant.setEmail(request.getEmail());
