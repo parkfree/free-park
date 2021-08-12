@@ -28,7 +28,7 @@ public class CheckTaskManager {
   private final Map<Integer, CheckTask> checkTasks = new ConcurrentHashMap<>();
 
   @Autowired
-  private MemberRepository memberRepository;
+  private MemberService memberService;
 
   @Autowired
   private RtmapService rtmapService;
@@ -84,7 +84,7 @@ public class CheckTaskManager {
     log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(),
       checkTasks.get(tenant.getId()).getCheckCount());
 
-    Member member = memberRepository.getBestPayMember(tenant);
+    Member member = memberService.getBestMemberForPayment(tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the check schedule task.", tenant.getCarNumber());
       cancelCheckTask(tenant);
