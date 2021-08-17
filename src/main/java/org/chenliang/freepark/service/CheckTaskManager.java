@@ -84,7 +84,7 @@ public class CheckTaskManager {
     log.info("Check if the car {} is parked, check count: {}", tenant.getCarNumber(),
       checkTasks.get(tenant.getId()).getCheckCount());
 
-    Member member = memberService.getBestMemberForPayment(tenant);
+    Member member = memberService.getRandomPayEnabledMember(tenant);
     if (member == null) {
       log.warn("No available member for car: {}, cancel the check schedule task.", tenant.getCarNumber());
       cancelCheckTask(tenant);

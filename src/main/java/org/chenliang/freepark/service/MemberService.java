@@ -5,17 +5,23 @@ import org.chenliang.freepark.model.MemberRequest;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
+
+import static org.chenliang.freepark.service.UnitUtil.centToHour;
 
 @Service
 public class MemberService {
 
-  @Autowired
-  private MemberRepository memberRepository;
+  private final MemberRepository memberRepository;
+
+  public MemberService(MemberRepository memberRepository) {
+    this.memberRepository = memberRepository;
+  }
 
   public Member createMember(MemberRequest memberRequest, Tenant tenant) {
     Member member = new Member();
@@ -32,11 +38,13 @@ public class MemberService {
     return memberRepository.save(member);
   }
 
-  public Member getBestMemberForPayment(Tenant tenant) {
-    return memberRepository.findByTenantIdAndEnablePayIsTrue(tenant.getId())
+  public Member getBestMemberForPayment(Tenant tenant, int receivableCent) {
+    int parkingHour = centToHour(receivableCent);
+    return memberRepository.findByTenantIdAndEnablePayTrue(tenant.getId())
                            .stream()
-                           .filter(member -> member.getCoupons() > 0 || member.getPoints() >= UnitUtil.POINT_PER_HOUR)
-                           .max(Comparator.comparingInt(Member::affordableParkingHour))
+                           .filter(member -> member.affordableParkingHour() >= parkingHour)
+                           .collect(Collectors.toList()).stream()
+                           .reduce(findBestMemberOperator(parkingHour))
                            .orElse(null);
   }
 
@@ -45,6 +53,28 @@ public class MemberService {
     member.setCoupons(member.getCoupons() - usedCoupons);
     member.setLastPaidAt(LocalDate.now());
     memberRepository.save(member);
+  }
+
+  public Member getRandomPayEnabledMember(Tenant tenant) {
+    return memberRepository.findFirstByEnablePayTrueAndTenant(tenant);
+  }
+
+  private BinaryOperator<Member> findBestMemberOperator(int parkingHour) {
+    int needCoupon = parkingHour / UnitUtil.HOUR_PER_COUPON;
+    Comparator<Member> comparator = Comparator.comparingInt(member -> Math.abs(member.getCoupons() - needCoupon));
+    return (selected, curr) -> {
+      if (selected.getCoupons() == curr.getCoupons()) {
+        return selected.getPoints() <= curr.getPoints() ? selected : curr;
+      }
+
+      if (selected.getCoupons() >= needCoupon && curr.getCoupons() < needCoupon) {
+        return selected;
+      } else if (selected.getCoupons() < needCoupon && curr.getCoupons() >= needCoupon) {
+        return curr;
+      } else {
+        return comparator.compare(selected, curr) <= 0 ? selected : curr;
+      }
+    };
   }
 
   private void setMemberFields(MemberRequest memberRequest, Member member) {

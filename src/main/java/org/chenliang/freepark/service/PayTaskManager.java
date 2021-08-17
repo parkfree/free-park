@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
+import static org.chenliang.freepark.service.UnitUtil.centToYuan;
+
 @Service
 @Log4j2
 public class PayTaskManager {
@@ -25,9 +27,6 @@ public class PayTaskManager {
   private static final int SAFE_PAY_THRESHOLD_MIN = 3;
 
   private final Map<Integer, PayTask> payTasks = new ConcurrentHashMap<>();
-
-  @Autowired
-  private MemberService memberService;
 
   @Autowired
   private PaymentService paymentService;
@@ -88,11 +87,7 @@ public class PayTaskManager {
     if (paymentStatus == PaymentStatus.CAR_NOT_FOUND || paymentStatus == PaymentStatus.NO_AVAILABLE_MEMBER) {
       cancelPayTask(tenant);
     } else if (paymentStatus == PaymentStatus.SUCCESS) {
-      log.info("Successfully paid car {}", tenant.getCarNumber());
-      if (memberService.getBestMemberForPayment(tenant) == null) {
-        log.warn("All members for car {} are used, cancel the pay schedule task", tenant.getCarNumber());
-        cancelPayTask(tenant);
-      }
+      log.info("Successfully pay {} RMB for car {}", centToYuan(payment.getAmount()), tenant.getCarNumber());
     }
   }
 

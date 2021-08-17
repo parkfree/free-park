@@ -29,7 +29,7 @@ public class CouponTaskScheduler {
   // start at 06:00 on day-of-month 1
   @Scheduled(cron = "0 0 6 1 * *}")
   public void scheduleGetCouponsTask() {
-    List<Member> members = memberRepository.findByEnablePayIsTrue();
+    List<Member> members = memberRepository.findByEnablePayTrue();
     Instant now = Instant.now();
     Random random = new Random();
     members.forEach(member -> {

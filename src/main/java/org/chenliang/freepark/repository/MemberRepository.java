@@ -1,6 +1,7 @@
 package org.chenliang.freepark.repository;
 
 import org.chenliang.freepark.model.entity.Member;
+import org.chenliang.freepark.model.entity.Tenant;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -16,7 +17,9 @@ import java.util.Optional;
 public interface MemberRepository extends JpaRepository<Member, Integer> {
   List<Member> findByTenantId(Integer tenantId);
 
-  List<Member> findByTenantIdAndEnablePayIsTrue(Integer tenantId);
+  List<Member> findByTenantIdAndEnablePayTrue(Integer tenantId);
+
+  Member findFirstByEnablePayTrueAndTenant(Tenant tenant);
 
   Optional<Member> findFirstByIdAndTenantId(Integer id, Integer tenantId);
 
@@ -28,7 +31,7 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
   @EntityGraph(attributePaths = {"tenant"})
   Page<Member> findAll(Pageable pageable);
 
-  List<Member> findByEnablePayIsTrue();
+  List<Member> findByEnablePayTrue();
 
   @Modifying
   @Query("delete from Member m where m.tenant.id = ?1")

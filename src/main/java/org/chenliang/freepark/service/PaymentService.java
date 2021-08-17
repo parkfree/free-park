@@ -48,6 +48,9 @@ public class PaymentService {
   private CouponsService couponsService;
 
   @Autowired
+  private PointService pointService;
+
+  @Autowired
   private EmailService emailService;
 
   private static final Map<PaymentStatus, String> STATUS_COMMENT_MAP = Map.of(
@@ -71,10 +74,37 @@ public class PaymentService {
   }
 
   public Payment pay(Tenant tenant) {
-    Member member = memberService.getBestMemberForPayment(tenant);
-    if (member == null) {
-      log.warn("No available member for car: {}, cancel the pay schedule task", tenant.getCarNumber());
+    Member randomMember = memberService.getRandomPayEnabledMember(tenant);
+
+    if (randomMember == null) {
+      log.info("No enabled member for payment of car: {}", tenant.getCarNumber());
       return createPayment(tenant, null, PaymentStatus.NO_AVAILABLE_MEMBER, 0);
+    }
+
+    ParkDetail parkDetail;
+    try {
+      parkDetail = rtmapService.getParkDetail(randomMember, tenant.getCarNumber());
+    } catch (RtmapApiException e) {
+      return handleParkDetailException(tenant, randomMember, e);
+    }
+
+    Integer receivableCent = parkDetail.getParkingFee().getReceivable();
+
+    if (receivableCent == 0) {
+      log.info("Car {} is already paid", tenant.getCarNumber());
+      return createPayment(tenant, randomMember, PaymentStatus.NO_NEED_TO_PAY, 0);
+    }
+
+    Member member = memberService.getBestMemberForPayment(tenant, receivableCent);
+    if (member == null) {
+      log.info("No available member for payment of car: {}", tenant.getCarNumber());
+      return createPayment(tenant, null, PaymentStatus.NO_AVAILABLE_MEMBER, 0);
+    }
+
+    try {
+      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
+    } catch (RtmapApiException e) {
+      return handleParkDetailException(tenant, member, e);
     }
 
     List<Coupon> availableCoupons;
@@ -84,27 +114,13 @@ public class PaymentService {
       return createPayment(tenant, member, PaymentStatus.RTMAP_API_ERROR, 0);
     }
 
-    ParkDetail parkDetail;
     try {
-      parkDetail = rtmapService.getParkDetail(member, tenant.getCarNumber());
+      member = pointService.updatePoint(member);
     } catch (RtmapApiException e) {
-      if (e instanceof RtmapApiErrorResponseException) {
-        if (((RtmapApiErrorResponseException) e).getCode() == ParkDetail.CAR_NOT_FOUND_CODE) {
-          log.info("Car {} is not found when paying", tenant.getCarNumber());
-          return createPayment(tenant, member, PaymentStatus.CAR_NOT_FOUND, 0);
-        }
-      }
-      sendFailedEmail(tenant.getEmail());
       return createPayment(tenant, member, PaymentStatus.RTMAP_API_ERROR, 0);
     }
 
-    Integer receivableCent = parkDetail.getParkingFee().getReceivable();
     Integer parkingFeeCent = parkDetail.getParkingFee().getFeeNumber();
-
-    if (receivableCent == 0) {
-      log.info("Car {} is already paid", tenant.getCarNumber());
-      return createPayment(tenant, member, PaymentStatus.NO_NEED_TO_PAY, 0);
-    }
 
     if (member.affordableParkingHour() < centToHour(parkingFeeCent)) {
       sendFailedEmail(tenant.getEmail());
@@ -127,6 +143,17 @@ public class PaymentService {
     tenantService.increaseTotalAmount(tenant, payment.getAmount());
     memberService.decreasePointsAndCoupons(member, requiredPoints, selectedCoupons.size());
     return payment;
+  }
+
+  private Payment handleParkDetailException(Tenant tenant, Member member, RtmapApiException e) {
+    if (e instanceof RtmapApiErrorResponseException) {
+      if (((RtmapApiErrorResponseException) e).getCode() == ParkDetail.CAR_NOT_FOUND_CODE) {
+        log.info("Car {} is not found when paying", tenant.getCarNumber());
+        return createPayment(tenant, member, PaymentStatus.CAR_NOT_FOUND, 0);
+      }
+    }
+    sendFailedEmail(tenant.getEmail());
+    return createPayment(tenant, member, PaymentStatus.RTMAP_API_ERROR, 0);
   }
 
   private Payment createPayment(Tenant tenant, Member member, PaymentStatus status, int amount) {
