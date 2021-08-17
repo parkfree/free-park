@@ -52,31 +52,38 @@ public class AuthService {
   @Transactional
   public Optional<Tenant> authenticate(HttpServletRequest request) {
     return Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION))
-        .map(token -> token.replaceFirst(TOKEN_PREFIX, ""))
-        .map(token -> {
-          AccessToken accessToken = accessTokenRepository.findByToken(token)
-              .orElseThrow(() -> new TokenAuthenticationException("Token not found"));
+                   .map(token -> token.replaceFirst(TOKEN_PREFIX, ""))
+                   .map(token -> {
+                     AccessToken accessToken =
+                         accessTokenRepository.findByToken(token)
+                                              .orElseThrow(() -> new TokenAuthenticationException("Token not found"));
+                     if (accessToken.getExpireAt().isBefore(LocalDateTime.now())) {
+                       throw new TokenAuthenticationException("Expired token");
+                     }
 
-          if (accessToken.getExpireAt().isBefore(LocalDateTime.now())) {
-            throw new TokenAuthenticationException("Expired token");
-          }
-
-          return accessToken;
-        })
-        .map(AccessToken::getTenant);
+                     return accessToken;
+                   })
+                   .map(AccessToken::getTenant);
   }
 
   @Transactional
   public TokenResponse register(@RequestBody @Valid CreateTenantRequest request) {
     validateInviteCode(request.getInviteCode());
+    validateEmail(request.getEmail());
     Tenant tenant = tenantService.createTenant(request);
     return createToken(tenant);
+  }
+
+  private void validateEmail(String email) {
+    if (!email.endsWith("@cerence.com")) {
+      throw new InvalidRequestException("Email must end with cerence.com");
+    }
   }
 
   public TokenResponse login(LoginRequest request) {
     String email = request.getEmail();
     Tenant tenant = tenantRepository.findByEmail(email)
-        .orElseThrow(() -> new InvalidRequestException("Invalid email or password"));
+                                    .orElseThrow(() -> new InvalidRequestException("Invalid email or password"));
     if (passwordEncoder.matches(request.getPassword(), tenant.getPassword())) {
       return createToken(tenant);
     } else {
@@ -94,9 +101,9 @@ public class AuthService {
     accessTokenRepository.save(accessToken);
 
     return TokenResponse.builder()
-        .accessToken(tokenString)
-        .expireIn((int) TOKEN_EXPIRE_IN.toSeconds())
-        .build();
+                        .accessToken(tokenString)
+                        .expireIn((int) TOKEN_EXPIRE_IN.toSeconds())
+                        .build();
   }
 
   private String randomToken() {
