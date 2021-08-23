@@ -63,7 +63,7 @@ public class MemberService {
     int needCoupon = parkingHour / UnitUtil.HOUR_PER_COUPON;
     Comparator<Member> comparator = Comparator.comparingInt(member -> Math.abs(member.getCoupons() - needCoupon));
     return (selected, curr) -> {
-      if (selected.getCoupons() == curr.getCoupons()) {
+      if (selected.getCoupons() == curr.getCoupons() || needCoupon == 0) {
         return selected.getPoints() <= curr.getPoints() ? selected : curr;
       }
 
