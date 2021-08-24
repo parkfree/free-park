@@ -114,12 +114,6 @@ public class PaymentService {
       return createPayment(tenant, member, PaymentStatus.RTMAP_API_ERROR, 0);
     }
 
-    try {
-      member = pointService.updatePoint(member);
-    } catch (RtmapApiException e) {
-      return createPayment(tenant, member, PaymentStatus.RTMAP_API_ERROR, 0);
-    }
-
     Integer parkingFeeCent = parkDetail.getParkingFee().getFeeNumber();
 
     if (member.affordableParkingHour() < centToHour(parkingFeeCent)) {
