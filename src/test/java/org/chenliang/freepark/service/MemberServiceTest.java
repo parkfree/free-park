@@ -89,7 +89,10 @@ class MemberServiceTest {
 
         // -------- odd receivable (1 hour) ------------
         Arguments.of(300, List.of(createMember(200, 1, "good"), createMember(400, 0, "bad"))),
-        Arguments.of(300, List.of(createMember(400, 0, "bad"), createMember(200, 1, "good")))
+        Arguments.of(300, List.of(createMember(400, 0, "bad"), createMember(200, 1, "good"))),
+
+        Arguments.of(300, List.of(createMember(400, 0, "good"), createMember(0, 1, "bad"))),
+        Arguments.of(300, List.of(createMember(0, 1, "bad"), createMember(400, 0, "good")))
     );
   }
 
