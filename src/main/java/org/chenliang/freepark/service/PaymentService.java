@@ -22,12 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.chenliang.freepark.service.UnitUtil.HOUR_PER_COUPON;
-import static org.chenliang.freepark.service.UnitUtil.POINT_PER_HOUR;
 import static org.chenliang.freepark.service.UnitUtil.centToHour;
-import static org.chenliang.freepark.service.UnitUtil.centToYuan;
-import static org.chenliang.freepark.service.UnitUtil.couponToHour;
-import static org.chenliang.freepark.service.UnitUtil.hourToPoint;
 
 @Service
 @Log4j2
@@ -46,9 +41,6 @@ public class PaymentService {
 
   @Autowired
   private CouponsService couponsService;
-
-  @Autowired
-  private PointService pointService;
 
   @Autowired
   private EmailService emailService;
@@ -114,19 +106,21 @@ public class PaymentService {
       return createPayment(tenant, member, PaymentStatus.RTMAP_API_ERROR, 0);
     }
 
-    Integer parkingFeeCent = parkDetail.getParkingFee().getFeeNumber();
+    int parkingHour = centToHour(parkDetail.getParkingFee().getFeeNumber());
 
-    if (member.affordableParkingHour() < centToHour(parkingFeeCent)) {
+    if (member.affordableParkingHour() < parkingHour) {
       sendFailedEmail(tenant.getEmail());
-      log.info("Need manually pay {} RMB for car {}", centToYuan(parkingFeeCent), tenant.getCarNumber());
+      log.info("Need manually pay {} parking hours for car {}", parkingHour, tenant.getCarNumber());
       return createPayment(tenant, member, PaymentStatus.NEED_WECHAT_PAY, receivableCent);
     }
 
-    List<Coupon> selectedCoupons = getRequiredCoupons(parkingFeeCent, member.getPoints(), availableCoupons);
-    int requiredPoints = getRequiredPoints(parkingFeeCent, selectedCoupons.size());
+    PaymentUtil.AllocateResult allocateResult = PaymentUtil.allocate(parkingHour, member);
+    List<Coupon> selectedCoupons = availableCoupons.stream()
+                                                   .limit(allocateResult.getAllocCoupons())
+                                                   .collect(Collectors.toList());
 
     try {
-      rtmapService.payParkingFee(member, parkDetail, requiredPoints, selectedCoupons);
+      rtmapService.payParkingFee(member, parkDetail, allocateResult.getAllocPoints(), selectedCoupons);
     } catch (RtmapApiException e) {
       // TODO: special handle 400 error code, this means either insufficient points, or coupon count is not correct.
       sendFailedEmail(tenant.getEmail());
@@ -135,7 +129,7 @@ public class PaymentService {
 
     Payment payment = createPayment(tenant, member, PaymentStatus.SUCCESS, receivableCent);
     tenantService.increaseTotalAmount(tenant, payment.getAmount());
-    memberService.decreasePointsAndCoupons(member, requiredPoints, selectedCoupons.size());
+    memberService.decreasePointsAndCoupons(member, allocateResult);
     return payment;
   }
 
@@ -159,21 +153,6 @@ public class PaymentService {
     payment.setComment(STATUS_COMMENT_MAP.get(status));
     payment.setPaidAt(LocalDateTime.now());
     return paymentRepository.save(payment);
-  }
-
-  private List<Coupon> getRequiredCoupons(int parkingFeeCent, int availablePoints, List<Coupon> availableCoupons) {
-    int selectCount;
-    if (availablePoints < POINT_PER_HOUR) {
-      selectCount = (int) Math.ceil(centToHour(parkingFeeCent) / (double) HOUR_PER_COUPON);
-    } else {
-      selectCount = Math.min(centToHour(parkingFeeCent) / HOUR_PER_COUPON, availableCoupons.size());
-    }
-    return availableCoupons.stream().limit(selectCount).collect(Collectors.toList());
-  }
-
-  private int getRequiredPoints(int parkingFeeCent, int selectCouponCount) {
-    int leftHour = centToHour(parkingFeeCent) - couponToHour(selectCouponCount);
-    return leftHour > 0 ? hourToPoint(leftHour) : 0;
   }
 
   private void sendFailedEmail(String email) {

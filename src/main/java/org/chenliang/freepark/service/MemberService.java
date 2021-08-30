@@ -5,13 +5,14 @@ import org.chenliang.freepark.model.MemberRequest;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
+import org.chenliang.freepark.service.PaymentUtil.AllocateResult;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
+import static org.chenliang.freepark.service.UnitUtil.POINT_PER_HOUR;
 import static org.chenliang.freepark.service.UnitUtil.centToHour;
 
 @Service
@@ -48,9 +49,9 @@ public class MemberService {
                            .orElse(null);
   }
 
-  public void decreasePointsAndCoupons(Member member, int usedPoints, int usedCoupons) {
-    member.setPoints(member.getPoints() - usedPoints);
-    member.setCoupons(member.getCoupons() - usedCoupons);
+  public void decreasePointsAndCoupons(Member member, AllocateResult allocateResult) {
+    member.setPoints(member.getPoints() - allocateResult.getAllocPoints());
+    member.setCoupons(member.getCoupons() - allocateResult.getAllocCoupons());
     member.setLastPaidAt(LocalDate.now());
     memberRepository.save(member);
   }
@@ -60,19 +61,35 @@ public class MemberService {
   }
 
   private BinaryOperator<Member> findBestMemberOperator(int parkingHour) {
-    int needCoupon = parkingHour / UnitUtil.HOUR_PER_COUPON;
-    Comparator<Member> comparator = Comparator.comparingInt(member -> Math.abs(member.getCoupons() - needCoupon));
-    return (selected, curr) -> {
-      if (selected.getCoupons() == curr.getCoupons() || needCoupon == 0) {
-        return selected.getPoints() <= curr.getPoints() ? selected : curr;
-      }
-
-      if (selected.getCoupons() >= needCoupon && curr.getCoupons() < needCoupon) {
-        return selected;
-      } else if (selected.getCoupons() < needCoupon && curr.getCoupons() >= needCoupon) {
-        return curr;
+    // if allocPoints of two member > 0 (points of two members are used)
+    //   if allocPoints are different
+    //     choose the member with less allocPoints
+    //   else allocPoints are equal (which means allocCoupons are equal too)
+    //     choose the member with less points
+    // else if allocPoints of two member = 0 (points of both members are not used), (which also means allocCoupons of both are equal)
+    //     choose the member with less coupons
+    // else if allocPoints of one member = 0, and another > 0 (which means allocCoupons of two members are different)
+    //   if the difference of two allocPoints are equal to POINTS_PER_HOUR
+    //     choose the member with allocPoints > 0 (choose the one with less allocCoupons)
+    //   else
+    //     choose the member with allocPoints = 0 (choose the one with less allocPoints)
+    return (prev, curr) -> {
+      AllocateResult prevAlloc = PaymentUtil.allocate(parkingHour, prev);
+      AllocateResult currAlloc = PaymentUtil.allocate(parkingHour, curr);
+      if (prevAlloc.getAllocPoints() > 0 && currAlloc.getAllocPoints() > 0) {
+        if (prevAlloc.getAllocPoints() != currAlloc.getAllocPoints()) {
+          return MemberComparators.minByAllocPoints(prevAlloc, currAlloc);
+        } else {
+          return MemberComparators.minByPoints(prev, curr);
+        }
+      } else if (prevAlloc.getAllocPoints() == 0 && currAlloc.getAllocPoints() == 0) {
+        return MemberComparators.minByCoupons(prev, curr);
       } else {
-        return comparator.compare(selected, curr) <= 0 ? selected : curr;
+        if (Math.abs(prevAlloc.getAllocPoints() - currAlloc.getAllocPoints()) == POINT_PER_HOUR) {
+          return MemberComparators.minByAllocCoupons(prevAlloc, currAlloc);
+        } else {
+          return MemberComparators.minByAllocPoints(prevAlloc, currAlloc);
+        }
       }
     };
   }
