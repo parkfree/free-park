@@ -6,7 +6,6 @@ import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Tenant;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.service.PaymentUtil.AllocateResult;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,16 +19,14 @@ import static org.chenliang.freepark.service.UnitUtil.centToHour;
 public class MemberService {
 
   private final MemberRepository memberRepository;
-  private final ModelMapper modelMapper;
 
-  public MemberService(MemberRepository memberRepository, ModelMapper modelMapper) {
+  public MemberService(MemberRepository memberRepository) {
     this.memberRepository = memberRepository;
-    this.modelMapper = modelMapper;
   }
 
   public Member createMember(MemberRequest memberRequest, Tenant tenant) {
     Member member = new Member();
-    modelMapper.map(memberRequest, member);
+    setMemberFields(memberRequest, member);
     member.setTenant(tenant);
     return memberRepository.save(member);
   }
@@ -37,7 +34,7 @@ public class MemberService {
   public Member updateMember(Integer id, MemberRequest memberRequest, Tenant tenant) {
     Member member = memberRepository.findFirstByIdAndTenantId(id, tenant.getId())
                                     .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
-    modelMapper.map(memberRequest, member);
+    setMemberFields(memberRequest, member);
     member.setTenant(tenant);
     return memberRepository.save(member);
   }
@@ -97,4 +94,13 @@ public class MemberService {
     };
   }
 
+  private void setMemberFields(MemberRequest memberRequest, Member member) {
+    member.setMemType(memberRequest.getMemType());
+    member.setMobile(memberRequest.getMobile());
+    member.setOpenId(memberRequest.getOpenId());
+    member.setUserId(memberRequest.getUserId());
+    member.setName(memberRequest.getName());
+    member.setEnablePay(memberRequest.isEnablePay());
+    member.setEnablePoint(memberRequest.isEnablePoint());
+  }
 }
