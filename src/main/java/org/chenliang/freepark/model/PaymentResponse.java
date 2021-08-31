@@ -13,8 +13,6 @@ public class PaymentResponse {
   private PaymentStatus status;
   private Integer amount;
   private String comment;
-  private String qrCode;
-  private int facePrice;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime paidAt;
