@@ -4,21 +4,16 @@ import lombok.Data;
 import lombok.experimental.Delegate;
 
 @Data
-public class PointsResponse {
+public class RtmapMemberResponse {
   public static final Integer OK_CODE = 200;
-
-  private int status;
+  private Integer status;
   private String message;
+
   @Delegate
-  private InnerData data;
+  private RtmapMemberResponse.InnerData data;
 
   @Data
   private static class InnerData {
-
-    private int scoreF;
-    private int total;
-    private int balance;
-    private int scoreS;
-    private String name;
+    private RtmapMember member;
   }
 }

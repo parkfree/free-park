@@ -36,4 +36,6 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
   @Modifying
   @Query("delete from Member m where m.tenant.id = ?1")
   void deleteInBulkByTenantId(Integer tenantId);
+
+  Member findFirstByEnablePayTrue();
 }

@@ -14,6 +14,7 @@ import org.chenliang.freepark.model.rtmap.ParkingCouponsResponse.Coupon;
 import org.chenliang.freepark.model.rtmap.Payment;
 import org.chenliang.freepark.model.rtmap.PointsResponse;
 import org.chenliang.freepark.model.rtmap.ProductsResponse;
+import org.chenliang.freepark.model.rtmap.RtmapMemberResponse;
 import org.chenliang.freepark.model.rtmap.Status;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +49,8 @@ public class RtmapService {
   public static final String CHECK_IN_POINT_URI = "/sign/signRecord";
   public static final String GET_POINT_URI = "/wxapp-root/api/v1/score/account?tenantType=1&tenantId={tenantId}" +
                                              "&cid={cid}";
+  public static final String GET_MEMBER_DETAIL_URI = "/wxapp-root/api/v1/customer/info?tenantType=1" +
+                                                     "&tenantId={marketId}&searchType=1&searchText={mobile}";
 
   public RtmapService(RestTemplate client, FreeParkConfig config) {
     this.client = client;
@@ -233,6 +236,26 @@ public class RtmapService {
       throw new RtmapApiErrorResponseException(response.getCode(), response.getMsg());
     }
 
+    return response;
+  }
+
+  public RtmapMemberResponse getMemberDetailByMobile(Member member, String mobile) {
+    HttpEntity<Void> headers = new HttpEntity<>(createHeaders(member));
+    RtmapMemberResponse response;
+    try {
+      response = client.exchange(GET_MEMBER_DETAIL_URI, HttpMethod.GET, headers, RtmapMemberResponse.class,
+                                 MARKET_ID, mobile)
+                       .getBody();
+    } catch (Exception e) {
+      log.error("Call get member detail API error for member {}", mobile, e);
+      throw new RtmapApiRequestErrorException(e);
+    }
+
+    if (!RtmapMemberResponse.OK_CODE.equals(response.getStatus())) {
+      log.warn("Call get member detail API for member {} return error code: {}, message: {}",
+               mobile, response.getStatus(), response.getMessage());
+      throw new RtmapApiErrorResponseException(response.getStatus(), response.getMessage());
+    }
     return response;
   }
 

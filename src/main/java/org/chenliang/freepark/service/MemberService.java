@@ -4,24 +4,25 @@ import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.MemberRequest;
 import org.chenliang.freepark.model.entity.Member;
 import org.chenliang.freepark.model.entity.Tenant;
+import org.chenliang.freepark.model.rtmap.RtmapMember;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.service.PaymentUtil.AllocateResult;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
-import static org.chenliang.freepark.service.UnitUtil.POINT_PER_HOUR;
 import static org.chenliang.freepark.service.UnitUtil.centToHour;
 
 @Service
 public class MemberService {
 
   private final MemberRepository memberRepository;
+  private RtmapService rtmapService;
 
-  public MemberService(MemberRepository memberRepository) {
+  public MemberService(MemberRepository memberRepository, RtmapService rtmapService) {
     this.memberRepository = memberRepository;
+    this.rtmapService = rtmapService;
   }
 
   public Member createMember(MemberRequest memberRequest, Tenant tenant) {
@@ -45,7 +46,7 @@ public class MemberService {
                            .stream()
                            .filter(member -> member.affordableParkingHour() >= parkingHour)
                            .collect(Collectors.toList()).stream()
-                           .reduce(findBestMemberOperator(parkingHour))
+                           .reduce(PaymentUtil.findBestMemberOperator(parkingHour))
                            .orElse(null);
   }
 
@@ -60,38 +61,10 @@ public class MemberService {
     return memberRepository.findFirstByEnablePayTrueAndTenant(tenant);
   }
 
-  private BinaryOperator<Member> findBestMemberOperator(int parkingHour) {
-    // if allocPoints of two member > 0 (points of two members are used)
-    //   if allocPoints are different
-    //     choose the member with less allocPoints
-    //   else allocPoints are equal (which means allocCoupons are equal too)
-    //     choose the member with less points
-    // else if allocPoints of two member = 0 (points of both members are not used), (which also means allocCoupons of both are equal)
-    //     choose the member with less coupons
-    // else if allocPoints of one member = 0, and another > 0 (which means allocCoupons of two members are different)
-    //   if the difference of two allocPoints are equal to POINTS_PER_HOUR
-    //     choose the member with allocPoints > 0 (choose the one with less allocCoupons)
-    //   else
-    //     choose the member with allocPoints = 0 (choose the one with less allocPoints)
-    return (prev, curr) -> {
-      AllocateResult prevAlloc = PaymentUtil.allocate(parkingHour, prev);
-      AllocateResult currAlloc = PaymentUtil.allocate(parkingHour, curr);
-      if (prevAlloc.getAllocPoints() > 0 && currAlloc.getAllocPoints() > 0) {
-        if (prevAlloc.getAllocPoints() != currAlloc.getAllocPoints()) {
-          return MemberComparators.minByAllocPoints(prevAlloc, currAlloc);
-        } else {
-          return MemberComparators.minByPoints(prev, curr);
-        }
-      } else if (prevAlloc.getAllocPoints() == 0 && currAlloc.getAllocPoints() == 0) {
-        return MemberComparators.minByCoupons(prev, curr);
-      } else {
-        if (Math.abs(prevAlloc.getAllocPoints() - currAlloc.getAllocPoints()) == POINT_PER_HOUR) {
-          return MemberComparators.minByAllocCoupons(prevAlloc, currAlloc);
-        } else {
-          return MemberComparators.minByAllocPoints(prevAlloc, currAlloc);
-        }
-      }
-    };
+  public RtmapMember getRtmapMemberDetailByMobile(String mobile) {
+    Member member = memberRepository.findFirstByEnablePayTrue();
+    return rtmapService.getMemberDetailByMobile(member, mobile)
+                       .getMember();
   }
 
   private void setMemberFields(MemberRequest memberRequest, Member member) {

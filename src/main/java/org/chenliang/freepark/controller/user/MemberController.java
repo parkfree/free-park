@@ -4,6 +4,7 @@ import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.MemberRequest;
 import org.chenliang.freepark.model.MemberResponse;
 import org.chenliang.freepark.model.entity.Tenant;
+import org.chenliang.freepark.model.rtmap.RtmapMember;
 import org.chenliang.freepark.repository.MemberRepository;
 import org.chenliang.freepark.service.MemberService;
 import org.modelmapper.ModelMapper;
@@ -65,5 +66,10 @@ public class MemberController {
     }
     memberRepository.deleteById(id);
     return ResponseEntity.ok().build();
+  }
+
+  @GetMapping("/rtmap-member/{mobile}")
+  public RtmapMember getRtmapMember(@PathVariable String mobile) {
+    return memberService.getRtmapMemberDetailByMobile(mobile);
   }
 }
