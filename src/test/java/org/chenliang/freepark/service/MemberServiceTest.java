@@ -21,7 +21,8 @@ class MemberServiceTest {
   @BeforeEach
   void setUp() {
     memberRepository = Mockito.mock(MemberRepository.class);
-    memberService = new MemberService(memberRepository);
+    RtmapService rtmapService = Mockito.mock(RtmapService.class);
+    memberService = new MemberService(memberRepository, rtmapService);
   }
 
   @ParameterizedTest

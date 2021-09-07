@@ -162,7 +162,7 @@ public class RtmapService {
       throw new RtmapApiRequestErrorException(e);
     }
 
-    if (pointsResponse.getStatus() != Status.GET_POINT_OK_CODE) {
+    if (pointsResponse.getStatus() != PointsResponse.OK_CODE) {
       log.warn("Call get account point API for member {} return error code: {}, message: {}",
                member.getMobile(), pointsResponse.getStatus(), pointsResponse.getMessage());
       throw new RtmapApiErrorResponseException(pointsResponse.getStatus(), pointsResponse.getMessage());
