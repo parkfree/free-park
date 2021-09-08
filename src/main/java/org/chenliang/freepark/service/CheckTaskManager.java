@@ -22,8 +22,8 @@ import java.util.concurrent.ScheduledFuture;
 @Log4j2
 public class CheckTaskManager {
 
-  private static final int MAX_CHECK_COUNT = 9;
-  private static final Duration CHECK_PERIOD = Duration.ofMinutes(20);
+  private static final int MAX_CHECK_COUNT = 4;
+  private static final Duration CHECK_PERIOD = Duration.ofMinutes(30);
 
   private final Map<Integer, CheckTask> checkTasks = new ConcurrentHashMap<>();
 

@@ -19,7 +19,7 @@ logging:
     name: "/var/log/freepark/application.log"
     max-history: 5
 
-check-cron: "0 0 8 * * MON-FRI"
+check-cron: "0 0 9 * * MON-FRI"
 
 invite-code: "FREEPARK20"
 
