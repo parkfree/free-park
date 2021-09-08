@@ -38,4 +38,6 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
   void deleteInBulkByTenantId(Integer tenantId);
 
   Member findFirstByEnablePayTrue();
+
+  Member findFirstByEnablePayTrueAndTenantOrderByCouponsDesc(Tenant tenant);
 }

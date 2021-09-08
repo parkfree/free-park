@@ -17,14 +17,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
+import static org.chenliang.freepark.service.InitialDelayCalculator.calculateInitPayDelay;
 import static org.chenliang.freepark.service.UnitUtil.centToYuan;
 
 @Service
 @Log4j2
 public class PayTaskManager {
-
-  private static final Duration PAY_PERIOD = Duration.ofMinutes(120);
-  private static final int SAFE_PAY_THRESHOLD_MIN = 3;
+  public static final Duration PAY_PERIOD = Duration.ofHours(2);
 
   private final Map<Integer, PayTask> payTasks = new ConcurrentHashMap<>();
 
@@ -34,18 +33,18 @@ public class PayTaskManager {
   @Autowired
   private ThreadPoolTaskScheduler taskScheduler;
 
-  public void schedulePayTask(Tenant tenant, Integer parkTime, LocalDateTime parkAtTime) {
+  public void schedulePayTask(Tenant tenant, Duration parkDuration, LocalDateTime enterTime, int maxCouponCount) {
     if (payTasks.get(tenant.getId()) != null) {
       log.info("The pay task for car {} is already scheduled", tenant.getCarNumber());
       return;
     }
 
-    Duration initDelay = calculateInitPayDelay(parkTime);
+    Duration initDelay = calculateInitPayDelay(parkDuration, enterTime.toLocalTime(), maxCouponCount);
     log.info("Car {} is scheduled to pay after {} min", tenant.getCarNumber(), initDelay.toMinutes());
 
     PayTask payTask = PayTask.builder()
                              .tenantId(tenant.getId())
-                             .parkAt(parkAtTime)
+                             .parkAt(enterTime)
                              .createdAt(LocalDateTime.now())
                              .initDelaySeconds((int) initDelay.toSeconds())
                              .periodMinutes((int) PAY_PERIOD.toMinutes())
@@ -96,15 +95,5 @@ public class PayTaskManager {
     LocalDateTime now = LocalDateTime.now();
     payTask.setLastScheduledAt(now);
     payTask.setNextScheduledAt(now.plus(PAY_PERIOD));
-  }
-
-  private Duration calculateInitPayDelay(Integer parkTime) {
-    int payPeriod = (int) PAY_PERIOD.toMinutes();
-
-    int initialDelay = payPeriod - (parkTime % payPeriod);
-    if (initialDelay > SAFE_PAY_THRESHOLD_MIN) {
-      initialDelay = initialDelay - SAFE_PAY_THRESHOLD_MIN;
-    }
-    return Duration.ofMinutes(initialDelay);
   }
 }

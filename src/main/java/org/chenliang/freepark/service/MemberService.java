@@ -18,7 +18,7 @@ import static org.chenliang.freepark.service.UnitUtil.centToHour;
 public class MemberService {
 
   private final MemberRepository memberRepository;
-  private RtmapService rtmapService;
+  private final RtmapService rtmapService;
 
   public MemberService(MemberRepository memberRepository, RtmapService rtmapService) {
     this.memberRepository = memberRepository;
@@ -59,6 +59,10 @@ public class MemberService {
 
   public Member getRandomPayEnabledMember(Tenant tenant) {
     return memberRepository.findFirstByEnablePayTrueAndTenant(tenant);
+  }
+
+  public Member getMemberWithMostCoupon(Tenant tenant) {
+    return memberRepository.findFirstByEnablePayTrueAndTenantOrderByCouponsDesc(tenant);
   }
 
   public RtmapMember getRtmapMemberDetailByMobile(String mobile) {
