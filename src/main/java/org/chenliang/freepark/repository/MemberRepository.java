@@ -40,4 +40,6 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
   Member findFirstByEnablePayTrue();
 
   Member findFirstByEnablePayTrueAndTenantOrderByCouponsDesc(Tenant tenant);
+
+  long countByTenant(Tenant tenant);
 }

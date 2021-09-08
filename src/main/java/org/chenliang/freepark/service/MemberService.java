@@ -1,5 +1,6 @@
 package org.chenliang.freepark.service;
 
+import org.chenliang.freepark.exception.InvalidRequestException;
 import org.chenliang.freepark.exception.ResourceNotFoundException;
 import org.chenliang.freepark.model.MemberRequest;
 import org.chenliang.freepark.model.entity.Member;
@@ -17,6 +18,7 @@ import static org.chenliang.freepark.service.UnitUtil.centToHour;
 @Service
 public class MemberService {
 
+  public static final int MAX_MEMBER_COUNT = 10;
   private final MemberRepository memberRepository;
   private final RtmapService rtmapService;
 
@@ -26,6 +28,9 @@ public class MemberService {
   }
 
   public Member createMember(MemberRequest memberRequest, Tenant tenant) {
+    if (memberRepository.countByTenant(tenant) >= MAX_MEMBER_COUNT) {
+      throw new InvalidRequestException("Reach the member count limitation: " + MAX_MEMBER_COUNT);
+    }
     Member member = new Member();
     setMemberFields(memberRequest, member);
     member.setTenant(tenant);
