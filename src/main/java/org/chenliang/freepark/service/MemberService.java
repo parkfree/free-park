@@ -71,7 +71,7 @@ public class MemberService {
   }
 
   public RtmapMember getRtmapMemberDetailByMobile(String mobile) {
-    Member member = memberRepository.findFirstByEnablePayTrue();
+    Member member = memberRepository.findFirstByEnablePayTrueOrderByIdDesc();
     return rtmapService.getMemberDetailByMobile(member, mobile)
                        .getMember();
   }
