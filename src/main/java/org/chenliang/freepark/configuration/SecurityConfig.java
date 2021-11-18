@@ -3,6 +3,7 @@ package org.chenliang.freepark.configuration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -17,26 +18,44 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
-  @Autowired
-  public TokenAuthenticationEntryPoint tokenAuthenticationEntryPoint;
-
-  @Bean
-  public TokenAuthenticationFilter tokenAuthorizationFilter() {
-    return new TokenAuthenticationFilter();
+  @Configuration
+  @Order(1)
+  public static class NoAuthApiConfigurerAdapter extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+      http
+          .cors()
+          .and()
+          .csrf().disable()
+          .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+          .and()
+          .requestMatchers()
+          .antMatchers("/signup", "/login", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**")
+          .and()
+          .authorizeRequests()
+          .anyRequest().anonymous();
+    }
   }
 
-  @Override
-  protected void configure(HttpSecurity http) throws Exception {
-    http.cors()
-        .and()
-        .csrf().disable()
-        .authorizeRequests()
-        .antMatchers("/signup", "/login", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-        .antMatchers("/admin/**").hasRole("ADMIN")
-        .anyRequest().authenticated()
-        .and()
-        .addFilterBefore(tokenAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class)
-        .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+  @Configuration
+  @Order(2)
+  public static class DeviceApiConfigurerAdapter extends WebSecurityConfigurerAdapter {
+    @Autowired
+    private TokenAuthenticationFilter tokenAuthenticationFilter;
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+      http
+          .cors()
+          .and()
+          .csrf().disable()
+          .authorizeRequests()
+          .antMatchers("/admin/**").hasRole("ADMIN")
+          .anyRequest().authenticated()
+          .and()
+          .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+          .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+    }
   }
 
   @Bean
@@ -50,10 +69,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedMethods("*")
-            .allowedOrigins("*")
-            .allowedHeaders("*")
-            .maxAge(3600 * 24);
+                .allowedMethods("*")
+                .allowedOrigins("*")
+                .allowedHeaders("*")
+                .maxAge(3600 * 24);
       }
     };
   }
