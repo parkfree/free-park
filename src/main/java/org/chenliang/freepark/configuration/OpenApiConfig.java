@@ -9,13 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-//@OpenAPIDefinition(info = @Info(title = "Free Park API", version = "v1"))
-//@SecurityScheme(
-//    name = "bearer token",
-//    type = SecuritySchemeType.HTTP,
-//    bearerFormat = "opaque",
-//    scheme = "bearer"
-//)
 public class OpenApiConfig {
   @Bean
   public OpenAPI customOpenAPI() {
