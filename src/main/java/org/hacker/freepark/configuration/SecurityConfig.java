@@ -40,8 +40,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
   @Configuration
   @Order(2)
   public static class DeviceApiConfigurerAdapter extends WebSecurityConfigurerAdapter {
-    @Autowired
-    private TokenAuthenticationFilter tokenAuthenticationFilter;
+    private final TokenAuthenticationFilter tokenAuthenticationFilter;
+
+    public DeviceApiConfigurerAdapter(TokenAuthenticationFilter tokenAuthenticationFilter) {
+      this.tokenAuthenticationFilter = tokenAuthenticationFilter;
+    }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
