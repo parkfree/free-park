@@ -53,10 +53,4 @@ public class AdminTenantController {
     Tenant tenant = tenantService.adminUpdateTenant(id, request);
     return modelMapper.map(tenant, TenantResponse.class);
   }
-
-  @DeleteMapping("/tenants/{id}")
-  public ResponseEntity<Void> deleteTenant(@PathVariable Integer id) {
-    tenantService.deleteTenant(id);
-    return ResponseEntity.ok().build();
-  }
 }
